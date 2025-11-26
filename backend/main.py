@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 import uvicorn
+import os
 from dotenv import load_dotenv
 from backend import rag
 
@@ -11,9 +12,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="NeuriScout - NeurIPS 2025 Paper Explorer")
 
+# Get allowed origins from environment variable
+# For development: "http://localhost:3000"
+# For production: "https://your-app.vercel.app" or "*" (not recommended for production)
+ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+
+# Handle wildcard or parse comma-separated origins
+if ALLOWED_ORIGINS_STR == "*":
+    allow_origins = ["*"]
+else:
+    allow_origins = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -139,8 +151,10 @@ def get_openai_models(request: OpenAIModelsRequest):
         return {'error': str(e), 'models': []}
 
 def start_server():
-    """Entry point for the neurips-backend command."""
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    """Entry point for the neuriscout-backend command."""
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host=host, port=port)
 
 if __name__ == "__main__":
     start_server()

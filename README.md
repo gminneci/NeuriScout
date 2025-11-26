@@ -107,6 +107,90 @@ The `scripts/` directory contains utilities for:
 - Merging datasets
 - Data validation and debugging
 
+## Deployment (Free Hosting)
+
+### Deploy to Vercel (Frontend) + Render (Backend)
+
+#### Backend Deployment (Render)
+
+1. **Create a Render account** at [render.com](https://render.com)
+
+2. **Create a new Web Service**:
+   - Connect your GitHub repository
+   - Name: `neuriscout-backend`
+   - Environment: `Python 3`
+   - Build Command: `pip install -e .`
+   - Start Command: `neuriscout-backend`
+
+3. **Add a Persistent Disk** (for ChromaDB):
+   - Go to your service settings
+   - Add Disk: Mount path `/opt/render/project/src/chroma_db`, Size: 1GB
+
+4. **Set Environment Variables**:
+   ```
+   PYTHON_VERSION=3.11.0
+   HOST=0.0.0.0
+   PORT=8000
+   CHROMA_DB_PATH=/opt/render/project/src/chroma_db
+   ALLOWED_ORIGINS=https://your-app.vercel.app
+   ```
+   
+   Optional (or enter in UI):
+   ```
+   OPENAI_API_KEY=your_key
+   GEMINI_API_KEY=your_key
+   ```
+
+5. **Upload ChromaDB data**:
+   - After first deploy, SSH into your service or use Render Shell
+   - Run `neuriscout-ingest` or upload your local `chroma_db` to the persistent disk
+
+6. **Copy your service URL** (e.g., `https://neuriscout-backend.onrender.com`)
+
+#### Frontend Deployment (Vercel)
+
+1. **Create a Vercel account** at [vercel.com](https://vercel.com)
+
+2. **Import your repository**:
+   - Click "New Project"
+   - Import your GitHub repository
+   - Root Directory: `frontend`
+   - Framework Preset: `Next.js`
+
+3. **Configure Environment Variables**:
+   - Add `NEXT_PUBLIC_API_URL` with your Render backend URL
+   - Example: `https://neuriscout-backend.onrender.com`
+
+4. **Update CORS on Backend**:
+   - Go back to Render dashboard
+   - Update `ALLOWED_ORIGINS` to include your Vercel URL
+   - Example: `https://neuriscout.vercel.app,https://neuriscout-*.vercel.app`
+
+5. **Deploy!**
+   - Vercel will automatically deploy
+   - Your app will be live at `https://your-app.vercel.app`
+
+#### Important Notes:
+
+- **Cold Starts**: Render's free tier sleeps after 15 minutes of inactivity. First request takes ~30 seconds to wake up.
+- **API Keys**: You can set API keys as environment variables on Render, or users can enter them in the UI.
+- **Database**: The ChromaDB data must be on the persistent disk. Make sure to run the ingest script or upload your data after deployment.
+- **Custom Domain**: Both Vercel and Render support custom domains for free.
+
+### Alternative: Deploy to Railway
+
+Railway offers $5 free credit per month and simpler deployment:
+
+1. **Create Railway account** at [railway.app](https://railway.app)
+2. **Deploy from GitHub**:
+   - New Project → Deploy from GitHub
+   - Select your repository
+3. **Add two services**:
+   - Backend: Root directory `.`, Start command `neuriscout-backend`
+   - Frontend: Root directory `frontend`, Start command `npm run start`
+4. **Set environment variables** similar to above
+5. **Add persistent volume** for ChromaDB
+
 ## Technology Stack
 
 **Backend:**

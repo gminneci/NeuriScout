@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 # Configuration
-CHROMA_PATH = str(Path(__file__).parent.parent / "chroma_db")
+CHROMA_PATH = os.getenv("CHROMA_DB_PATH", str(Path(__file__).parent.parent / "chroma_db"))
 COLLECTION_NAME = "neurips_papers"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
