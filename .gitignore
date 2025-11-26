@@ -16,8 +16,8 @@ build/
 .env
 .env.local
 .env.production
-frontend/.env.local
-frontend/.env.production
+!.env.example
+!frontend/.env*.example
 
 # ChromaDB
 chroma_db/
@@ -43,7 +43,8 @@ frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/build/
-frontend/.env*
+frontend/.env.local
+frontend/.env.production
 frontend/*.tsbuildinfo
 frontend/next-env.d.ts
 
