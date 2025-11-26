@@ -60,7 +60,7 @@ export default function Home() {
             <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="max-w-5xl mx-auto px-4 py-6">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        NeurIPS 2025 Paper Copilot
+                        NeuriScout: navigate Neurips 2025
                     </h1>
                     <p className="text-gray-500 mb-6">
                         Explore papers, ask questions, and dive deep with AI.
