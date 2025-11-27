@@ -51,16 +51,25 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e .
 ```
 
-This installs the package in editable mode with all dependencies and creates the `neuriscout-backend` command.
+This installs the package in editable mode with all dependencies and creates the `neuriscout-backend` and `neuriscout-ingest` commands.
 
-3. Set up frontend:
+3. Generate the ChromaDB database:
+```bash
+neuriscout-ingest
+```
+
+This will process the paper data from `data/papercopilot_neurips2025_merged_openreview.csv` and create the vector database in `chroma_db/`. This takes a few minutes and creates ~88MB of data with embeddings for 5,273 papers.
+
+**Note:** The ChromaDB is required for the application to work. Keep it in the `chroma_db/` directory (it's excluded from git).
+
+4. Set up frontend:
 ```bash
 cd frontend
 npm install
 cd ..
 ```
 
-4. Configure API keys (optional):
+5. Configure API keys (optional):
 
 You can either set environment variables or enter them in the UI:
 
@@ -142,8 +151,12 @@ The `scripts/` directory contains utilities for:
    ```
 
 5. **Upload ChromaDB data**:
-   - After first deploy, SSH into your service or use Render Shell
-   - Run `neuriscout-ingest` or upload your local `chroma_db` to the persistent disk
+   - The ChromaDB database is NOT included in the repository (it's ~88MB)
+   - You need to generate it locally using `neuriscout-ingest` and then upload it
+   - Options for uploading:
+     - **Via Render Shell**: Access your service's Shell tab and run `neuriscout-ingest`
+     - **Manual upload**: Use `scp` or Render's file upload to copy your local `chroma_db/` directory to the persistent disk mount path
+   - The database contains 5,273 papers with embeddings and takes a few minutes to generate
 
 6. **Copy your service URL** (e.g., `https://neuriscout-backend.onrender.com`)
 
@@ -174,7 +187,11 @@ The `scripts/` directory contains utilities for:
 
 - **Cold Starts**: Render's free tier sleeps after 15 minutes of inactivity. First request takes ~30 seconds to wake up.
 - **API Keys**: You can set API keys as environment variables on Render, or users can enter them in the UI.
-- **Database**: The ChromaDB data must be on the persistent disk. Make sure to run the ingest script or upload your data after deployment.
+- **ChromaDB Database**: 
+  - The vector database is NOT in the repository (excluded via `.gitignore`)
+  - Generate it locally with `neuriscout-ingest` before deploying
+  - Upload to the persistent disk after deployment (via Render Shell or manual transfer)
+  - The database is ~88MB and contains embeddings for 5,273 papers
 - **Custom Domain**: Both Vercel and Render support custom domains for free.
 
 ### Alternative: Deploy to Railway
@@ -185,11 +202,18 @@ Railway offers $5 free credit per month and simpler deployment:
 2. **Deploy from GitHub**:
    - New Project → Deploy from GitHub
    - Select your repository
-3. **Add two services**:
-   - Backend: Root directory `.`, Start command `neuriscout-backend`
-   - Frontend: Root directory `frontend`, Start command `npm run start`
-4. **Set environment variables** similar to above
-5. **Add persistent volume** for ChromaDB
+3. **Set environment variables**:
+   ```
+   HOST=0.0.0.0
+   ALLOWED_ORIGINS=*
+   CHROMA_DB_PATH=/app/chroma_db
+   ```
+4. **Upload ChromaDB**:
+   - Generate locally: `neuriscout-ingest`
+   - Upload using Railway CLI or create a persistent volume and transfer files
+   - The `chroma_db/` directory (~88MB) must be accessible at the path set in `CHROMA_DB_PATH`
+
+**Note**: Railway paid tier ($5/month) is recommended for reliable hosting with better resources.
 
 ## Technology Stack
 
