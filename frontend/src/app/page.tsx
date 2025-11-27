@@ -18,7 +18,7 @@ export default function Home() {
     const [papers, setPapers] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
-    const [filters, setFilters] = useState({ affiliation: [] as string[], author: [] as string[], session: [] as string[] });
+    const [filters, setFilters] = useState({ affiliation: [] as string[], author: [] as string[], session: [] as string[], day: [] as string[] });
     const [filterOptions, setFilterOptions] = useState<{ affiliations: string[], authors: string[], sessions: string[] }>({ affiliations: [], authors: [], sessions: [] });
     const [limit, setLimit] = useState(10);
     const [threshold, setThreshold] = useState(0.6); // Default similarity threshold (distance 0.4)
@@ -224,6 +224,43 @@ export default function Home() {
                                         options={filterOptions.sessions}
                                         placeholder="e.g., Oral"
                                     />
+                                </div>
+                            </div>
+                            <div className="md:col-span-3">
+                                <label className="block text-xs font-medium text-gray-700 mb-2">
+                                    Conference Day & Time (select multiple - OR logic)
+                                </label>
+                                <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+                                    {[
+                                        { value: '2025-12-03 AM', label: 'Wed Dec 3 AM' },
+                                        { value: '2025-12-03 PM', label: 'Wed Dec 3 PM' },
+                                        { value: '2025-12-04 AM', label: 'Thu Dec 4 AM' },
+                                        { value: '2025-12-04 PM', label: 'Thu Dec 4 PM' },
+                                        { value: '2025-12-05 AM', label: 'Fri Dec 5 AM' },
+                                        { value: '2025-12-05 PM', label: 'Fri Dec 5 PM' },
+                                    ].map((item) => {
+                                        const isSelected = filters.day.includes(item.value);
+                                        return (
+                                            <button
+                                                key={item.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setFilters(prev => ({ ...prev, day: prev.day.filter(d => d !== item.value) }));
+                                                    } else {
+                                                        setFilters(prev => ({ ...prev, day: [...prev.day, item.value] }));
+                                                    }
+                                                }}
+                                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                                                    isSelected 
+                                                        ? 'bg-[#40569b] text-white' 
+                                                        : 'bg-white border border-gray-300 text-gray-700 hover:border-[#40569b]'
+                                                }`}
+                                            >
+                                                {item.label}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-200 pt-4 mt-2">

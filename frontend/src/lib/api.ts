@@ -14,7 +14,7 @@ export interface Paper {
 
 export async function searchPapers(
     query: string,
-    filters?: { affiliation?: string | string[]; author?: string | string[]; session?: string | string[] },
+    filters?: { affiliation?: string | string[]; author?: string | string[]; session?: string | string[]; day?: string | string[] },
     limit?: number,
     threshold?: number
 ) {

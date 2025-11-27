@@ -79,6 +79,38 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                     if not any(sess.lower() in metadata['session'].lower() for sess in sessions):
                         continue
                 
+                # Check Day (OR logic if list) - extract date and time from start_time
+                if filters and filters.get('day'):
+                    days = filters['day'] if isinstance(filters['day'], list) else [filters['day']]
+                    start_time = metadata.get('start_time', '')
+                    if start_time and 'T' in start_time:
+                        paper_date = start_time.split('T')[0]  # Extract YYYY-MM-DD
+                        paper_time = start_time.split('T')[1] if 'T' in start_time else ''
+                        paper_hour = int(paper_time.split(':')[0]) if paper_time and ':' in paper_time else 0
+                        
+                        match_found = False
+                        for day in days:
+                            # Check if day filter includes AM/PM
+                            if ' AM' in day or ' PM' in day:
+                                date_part = day.replace(' AM', '').replace(' PM', '')
+                                if date_part in paper_date:
+                                    if ' AM' in day and paper_hour < 12:
+                                        match_found = True
+                                        break
+                                    elif ' PM' in day and paper_hour >= 12:
+                                        match_found = True
+                                        break
+                            else:
+                                # No AM/PM specified, match any time on that date
+                                if day in paper_date:
+                                    match_found = True
+                                    break
+                        
+                        if not match_found:
+                            continue
+                    else:
+                        continue  # Skip papers without valid start_time
+                
                 formatted_results.append({
                     "id": results['ids'][i],
                     "title": metadata['title'],
@@ -125,7 +157,38 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                 sessions = filters['session'] if isinstance(filters['session'], list) else [filters['session']]
                 if not any(sess.lower() in metadata['session'].lower() for sess in sessions):
                     continue
-                    continue
+            
+            # Check Day (OR logic if list) - extract date and time from start_time
+            if filters and filters.get('day'):
+                days = filters['day'] if isinstance(filters['day'], list) else [filters['day']]
+                start_time = metadata.get('start_time', '')
+                if start_time and 'T' in start_time:
+                    paper_date = start_time.split('T')[0]  # Extract YYYY-MM-DD
+                    paper_time = start_time.split('T')[1] if 'T' in start_time else ''
+                    paper_hour = int(paper_time.split(':')[0]) if paper_time and ':' in paper_time else 0
+                    
+                    match_found = False
+                    for day in days:
+                        # Check if day filter includes AM/PM
+                        if ' AM' in day or ' PM' in day:
+                            date_part = day.replace(' AM', '').replace(' PM', '')
+                            if date_part in paper_date:
+                                if ' AM' in day and paper_hour < 12:
+                                    match_found = True
+                                    break
+                                elif ' PM' in day and paper_hour >= 12:
+                                    match_found = True
+                                    break
+                        else:
+                            # No AM/PM specified, match any time on that date
+                            if day in paper_date:
+                                match_found = True
+                                break
+                    
+                    if not match_found:
+                        continue
+                else:
+                    continue  # Skip papers without valid start_time
             
             distance = results['distances'][0][i] if results['distances'] else 0.0
             
@@ -193,6 +256,110 @@ async def fetch_multiple_papers(urls: list[str]):
     tasks = [fetch_paper_text(url) for url in urls]
     return await asyncio.gather(*tasks)
 
+# Cache for uploaded Gemini files - key is tuple of (url1, url2, ...) to identify paper set
+_gemini_file_cache = {}
+
+async def answer_question_with_urls(paper_urls: list[tuple[str, str]], question: str, model: str = "gemini", api_key: str = None, gemini_model: str = None, system_prompt: str = None, use_cache: bool = True):
+    """
+    Uses Gemini's native file reading to answer questions about papers from URLs.
+    paper_urls: list of (title, url) tuples
+    use_cache: if True, reuse previously uploaded files for the same paper set
+    """
+    if model != "gemini":
+        return "URL-based paper reading is only supported with Gemini models."
+    
+    if not system_prompt:
+        system_prompt = "You are a helpful assistant answering questions about research papers. Use the provided paper PDFs to answer the question."
+    
+    key = api_key or os.getenv("GEMINI_API_KEY")
+    if not key:
+        return "Gemini API Key not found. Please use the settings (cog wheel) to add your API key."
+    
+    try:
+        import google.generativeai as genai
+        import tempfile
+        genai.configure(api_key=key)
+        
+        # Use the specified model or default to gemini-1.5-flash
+        model_name = gemini_model or 'gemini-1.5-flash'
+        gemini_model_obj = genai.GenerativeModel(model_name)
+        
+        # Create cache key from URLs
+        cache_key = tuple(url for _, url in paper_urls)
+        
+        # Check cache
+        if use_cache and cache_key in _gemini_file_cache:
+            uploaded_files = _gemini_file_cache[cache_key]
+            print(f"[DEBUG] Using cached files for {len(uploaded_files)} papers")
+            status_messages = [f"✓ Using {len(uploaded_files)} previously uploaded papers"]
+        else:
+            # Upload PDFs to Gemini
+            uploaded_files = []
+            status_messages = []
+            total = len(paper_urls)
+            print(f"[DEBUG] Uploading {total} papers to Gemini...")
+            
+            async with httpx.AsyncClient() as client:
+                for idx, (title, url) in enumerate(paper_urls, 1):
+                    # Convert OpenReview forum URL to PDF URL
+                    pdf_url = url.replace("/forum?", "/pdf?") if "/forum?" in url else url
+                    try:
+                        from datetime import datetime
+                        timestamp = datetime.now().strftime("%H:%M:%S")
+                        
+                        # Download PDF
+                        response = await client.get(pdf_url, follow_redirects=True)
+                        response.raise_for_status()
+                        
+                        # Save temporarily and upload
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                            tmp.write(response.content)
+                            tmp_path = tmp.name
+                        
+                        uploaded_file = genai.upload_file(tmp_path, display_name=title)
+                        uploaded_files.append((title, uploaded_file))
+                        status_msg = f"[{timestamp}] ✓ Uploaded {idx}/{total}"
+                        print(f"[DEBUG] {status_msg}")
+                        status_messages.append(status_msg)
+                        
+                        # Clean up temp file
+                        import os
+                        os.unlink(tmp_path)
+                    except Exception as e:
+                        from datetime import datetime
+                        timestamp = datetime.now().strftime("%H:%M:%S")
+                        error_msg = f"[{timestamp}] ✗ Failed to upload paper {idx}/{total}"
+                        print(f"[DEBUG] {error_msg}: {str(e)}")
+                        status_messages.append(error_msg)
+            
+            if not uploaded_files:
+                return "Failed to upload any papers to Gemini."
+            
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            print(f"[DEBUG] Successfully uploaded {len(uploaded_files)} papers")
+            status_messages.append(f"[{timestamp}] ✅ Successfully uploaded {len(uploaded_files)}/{total} papers")
+            status_messages.append(f"[{timestamp}] 🤖 Generating answer...")
+            
+            # Cache the uploaded files
+            _gemini_file_cache[cache_key] = uploaded_files
+        
+        # Build prompt with file references
+        prompt_parts = [system_prompt, "\n\nPapers:\n"]
+        for title, file in uploaded_files:
+            prompt_parts.append(f"- {title}\n")
+            prompt_parts.append(file)
+        prompt_parts.append(f"\n\nQuestion: {question}")
+        
+        response = gemini_model_obj.generate_content(prompt_parts)
+        
+        # Prepend status messages to the response
+        status_text = "\n".join(status_messages)
+        return f"{status_text}\n\n---\n\n{response.text}"
+        
+    except Exception as e:
+        return f"Error calling Gemini with URLs: {str(e)}"
+
 def answer_question(context: str, question: str, model: str = "openai", api_key: str = None, gemini_model: str = None, openai_model: str = None, system_prompt: str = None):
     """
     Uses an LLM to answer a question about the paper text.
@@ -213,8 +380,8 @@ def answer_question(context: str, question: str, model: str = "openai", api_key:
             from openai import OpenAI
             client = OpenAI(api_key=key)
             
-            # Truncate text to avoid context limits (naive approach)
-            truncated_text = context[:15000] 
+            # No truncation - send full context
+            print(f"[DEBUG] Context length (OpenAI): {len(context)} characters")
             
             # Use the specified model or default to gpt-4o
             model_name = openai_model or 'gpt-4o'
@@ -223,7 +390,7 @@ def answer_question(context: str, question: str, model: str = "openai", api_key:
                 model=model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Papers Content:\n{truncated_text}\n\nQuestion: {question}"}
+                    {"role": "user", "content": f"Papers Content:\n{context}\n\nQuestion: {question}"}
                 ]
             )
             return response.choices[0].message.content
@@ -233,7 +400,7 @@ def answer_question(context: str, question: str, model: str = "openai", api_key:
     elif model == "gemini":
         key = api_key or os.getenv("GEMINI_API_KEY")
         if not key:
-            return "Gemini API Key not found. Please set GEMINI_API_KEY in backend/.env or provide it in the UI."
+            return "Gemini API Key not found. Please use the settings (cog wheel) to add your API key."
             
         try:
             import google.generativeai as genai
@@ -241,7 +408,9 @@ def answer_question(context: str, question: str, model: str = "openai", api_key:
             
             # Gemini 1.5 Pro has a large context window, so we can be more generous or pass full text
             # But let's still be reasonable.
+            print(f"[DEBUG] Context length before truncation: {len(context)} characters")
             truncated_text = context[:30000]
+            print(f"[DEBUG] Context length after truncation (Gemini): {len(truncated_text)} characters")
             
             # Use the specified model or default to gemini-1.5-flash
             model_name = gemini_model or 'gemini-1.5-flash'

@@ -36,10 +36,11 @@ class SearchRequest(BaseModel):
     affiliation: Optional[Any] = None
     author: Optional[Any] = None
     session: Optional[Any] = None
+    day: Optional[Any] = None  # Filter by conference day (Dec 3, 4, or 5)
     limit: Optional[int] = 10
     threshold: Optional[float] = None # Similarity threshold (0.0 to 1.0, lower distance is better)
     
-    @field_validator('affiliation', 'author', 'session', mode='before')
+    @field_validator('affiliation', 'author', 'session', 'day', mode='before')
     @classmethod
     def validate_filter_fields(cls, v):
         if v is None:
@@ -67,8 +68,22 @@ class ChatRequest(BaseModel):
 async def chat(request: ChatRequest):
     # Debug: Log API key status
     print(f"[DEBUG] Received chat request - API key provided: {request.api_key is not None}, Model: {request.model}")
+    print(f"[DEBUG] Number of papers in request: {len(request.papers)}")
     
-    # 1. Fetch text for all papers
+    # Use URL-based approach for Gemini (no truncation!)
+    if request.model == "gemini":
+        paper_urls = [(p.title, p.url) for p in request.papers]
+        answer = await rag.answer_question_with_urls(
+            paper_urls,
+            request.question,
+            model=request.model,
+            api_key=request.api_key,
+            gemini_model=request.gemini_model,
+            system_prompt=request.system_prompt
+        )
+        return {"answer": answer}
+    
+    # For OpenAI, fetch and extract text (with truncation)
     urls = [p.url for p in request.papers]
     texts = await rag.fetch_multiple_papers(urls)
     
@@ -99,6 +114,8 @@ def search(request: SearchRequest):
         filters['author'] = request.author
     if request.session:
         filters['session'] = request.session
+    if request.day:
+        filters['day'] = request.day
         
     return rag.search_papers(
         query=request.query,

@@ -128,6 +128,58 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
         scrollToBottom();
     }, [messages]);
 
+    // Pre-upload papers when panel opens (for Gemini with multiple papers)
+    const [hasPreUploaded, setHasPreUploaded] = useState(false);
+    
+    useEffect(() => {
+        const preUploadPapers = async () => {
+            // Guard conditions
+            if (model !== 'gemini' || selectedPapers.length === 0) return;
+            if (!apiKeys.gemini) return;
+            if (hasPreUploaded) return; // Only run once
+            if (messages.length > 0) return; // Don't run if there are already messages
+            
+            setHasPreUploaded(true);
+            const paperCount = selectedPapers.length;
+            
+            // Add initialization message
+            setMessages([{ 
+                role: 'assistant', 
+                content: `📄 Initializing ${paperCount} paper${paperCount > 1 ? 's' : ''}... This will make your first query faster.` 
+            }]);
+            
+            try {
+                const paperItems: PaperItem[] = selectedPapers.map(p => ({
+                    url: p.openreview_url || p.paper_url,
+                    title: p.title
+                }));
+                
+                // Trigger upload by sending a dummy query
+                await chatWithPapers(
+                    paperItems,
+                    "Initialize papers for caching",
+                    model,
+                    apiKeys.gemini,
+                    selectedGeminiModel,
+                    undefined,
+                    systemPrompt
+                );
+                
+                // Update message to show completion
+                setMessages([{ 
+                    role: 'assistant', 
+                    content: `✓ Papers ready! Ask me anything about your ${paperCount} selected paper${paperCount > 1 ? 's' : ''}.` 
+                }]);
+            } catch (error) {
+                console.error("Pre-upload error:", error);
+                // Clear the initialization message on error
+                setMessages([]);
+            }
+        };
+        
+        preUploadPapers();
+    }, [model, selectedPapers, apiKeys.gemini, hasPreUploaded, messages.length, selectedGeminiModel, systemPrompt]); // Watch for when conditions are met
+
     const handleResizeStart = (e: React.MouseEvent) => {
         e.preventDefault();
         setIsResizing(true);
@@ -186,10 +238,12 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
                 model === 'openai' ? selectedOpenaiModel : undefined,
                 systemPrompt
             );
+            
             setMessages(prev => [...prev, { role: 'assistant', content: res.answer }]);
         } catch (error: any) {
             console.error("Chat error:", error);
             const errorMessage = error.message || "Error: Could not fetch answer. Please check your API key.";
+            
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: errorMessage,
