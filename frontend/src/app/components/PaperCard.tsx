@@ -20,7 +20,7 @@ export default function PaperCard({ paper, selected, onToggleSelect }: PaperCard
                             type="checkbox"
                             checked={selected}
                             onChange={onToggleSelect}
-                            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            className="w-5 h-5 rounded border-gray-300 text-[#40569b] focus:ring-[#40569b] cursor-pointer"
                         />
                     </div>
                     <div className="flex-1">

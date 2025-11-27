@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { Paper, chatWithPapers, PaperItem, getGeminiModels, getOpenAIModels, GeminiModel } from '@/lib/api';
 import { X, Send, Bot, Settings, ChevronDown, ChevronUp, Maximize2, Minimize2, Edit3 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +19,9 @@ interface Message {
 }
 
 export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
+    const { data: session } = useSession();
+    const userEmail = session?.user?.email || 'default';
+    
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -34,15 +38,22 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
     const [inputHeight, setInputHeight] = useState(80);
     const [isResizing, setIsResizing] = useState(false);
     const resizeStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
-    const [systemPrompt, setSystemPrompt] = useState<string>('You are a helpful assistant answering questions about research papers. Use the provided paper content to answer the question.');
+    const [systemPrompt, setSystemPrompt] = useState<string>('You are a rigorous research assistant analyzing academic papers. Follow these guidelines strictly:\n\n1. NEVER make assumptions or inferences beyond what is explicitly stated in the papers. If information is not present, say "This is not addressed in the provided papers."\n\n2. ALWAYS cite your sources. For every claim, reference the specific paper and section/page where the information appears (e.g., "[Paper Title, Section 3.2]" or "[Smith et al., page 5]").\n\n3. Be concise and direct. Avoid unnecessary preambles or conclusions. It\'s acceptable to say "The paper does not provide clear evidence for X" rather than speculating.\n\n4. Quote exact numbers, metrics, and results when available. Precision matters.\n\n5. Pay special attention to:\n   - Hardware requirements and specifications\n   - Performance bottlenecks (memory, compute, bandwidth)\n   - Inference-time constraints and optimizations\n   - GPU utilization and efficiency issues\n   - Trade-offs between model size, speed, and accuracy\n\n6. When discussing hardware or infrastructure pain points, be specific about:\n   - What hardware was used\n   - What limitations were encountered\n   - What improvements or alternatives were suggested\n\nRemember: "It\'s not clear from the papers" is a valid and preferred answer over speculation.');
     const [showPromptEditor, setShowPromptEditor] = useState(false);
+
+    // Helper functions to get/set localStorage with user scope
+    const getUserKey = (key: string) => `${userEmail}_${key}`;
+    const getItem = (key: string) => localStorage.getItem(getUserKey(key));
+    const setItem = (key: string, value: string) => localStorage.setItem(getUserKey(key), value);
 
     // Load keys from localStorage on mount
     useEffect(() => {
-        const storedOpenAI = localStorage.getItem('openai_key');
-        const storedGemini = localStorage.getItem('gemini_key');
-        const storedGeminiModel = localStorage.getItem('gemini_model');
-        const storedOpenAIModel = localStorage.getItem('openai_model');
+        if (!userEmail) return;
+        
+        const storedOpenAI = getItem('openai_key');
+        const storedGemini = getItem('gemini_key');
+        const storedGeminiModel = getItem('gemini_model');
+        const storedOpenAIModel = getItem('openai_model');
         console.log('Loading API keys from localStorage:', { openai: storedOpenAI ? 'Found' : 'Not found', gemini: storedGemini ? 'Found' : 'Not found' });
         if (storedOpenAI) {
             setApiKeys(prev => ({ ...prev, openai: storedOpenAI }));
@@ -54,14 +65,14 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
         }
         if (storedGeminiModel) setSelectedGeminiModel(storedGeminiModel);
         if (storedOpenAIModel) setSelectedOpenaiModel(storedOpenAIModel);
-        const storedPrompt = localStorage.getItem('system_prompt');
+        const storedPrompt = getItem('system_prompt');
         if (storedPrompt) setSystemPrompt(storedPrompt);
-    }, []);
+    }, [userEmail]);
 
     const saveApiKey = (provider: 'openai' | 'gemini', key: string) => {
         console.log(`Saving ${provider} API key, length: ${key.length}`);
         setApiKeys(prev => ({ ...prev, [provider]: key }));
-        localStorage.setItem(`${provider}_key`, key);
+        setItem(`${provider}_key`, key);
         
         // Fetch available models when key is saved
         if (provider === 'gemini' && key) {
@@ -77,7 +88,7 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
             const result = await getGeminiModels(apiKey);
             if (result.models && result.models.length > 0) {
                 setGeminiModels(result.models);
-                const savedModel = localStorage.getItem('gemini_model');
+                const savedModel = getItem('gemini_model');
                 setSelectedGeminiModel(savedModel || result.models[0].name);
             } else if (result.error) {
                 console.error('Error fetching Gemini models:', result.error);
@@ -95,7 +106,7 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
             const result = await getOpenAIModels(apiKey);
             if (result.models && result.models.length > 0) {
                 setOpenaiModels(result.models);
-                const savedModel = localStorage.getItem('openai_model');
+                const savedModel = getItem('openai_model');
                 setSelectedOpenaiModel(savedModel || result.models[0].name);
             } else if (result.error) {
                 console.error('Error fetching OpenAI models:', result.error);
@@ -277,7 +288,7 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
                                         value={selectedOpenaiModel}
                                         onChange={(e) => {
                                             setSelectedOpenaiModel(e.target.value);
-                                            localStorage.setItem('openai_model', e.target.value);
+                                            setItem('openai_model', e.target.value);
                                         }}
                                         className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     >
@@ -306,7 +317,7 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
                                         value={selectedGeminiModel}
                                         onChange={(e) => {
                                             setSelectedGeminiModel(e.target.value);
-                                            localStorage.setItem('gemini_model', e.target.value);
+                                            setItem('gemini_model', e.target.value);
                                         }}
                                         className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-purple-500"
                                     >
@@ -343,7 +354,7 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
                                             value={systemPrompt}
                                             onChange={(e) => {
                                                 setSystemPrompt(e.target.value);
-                                                localStorage.setItem('system_prompt', e.target.value);
+                                                setItem('system_prompt', e.target.value);
                                             }}
                                             className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-500 resize-y min-h-[100px]"
                                             placeholder="Enter system prompt..."
