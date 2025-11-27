@@ -5,8 +5,11 @@ A full-stack application for searching and analyzing NeurIPS 2025 research paper
 ## Features
 
 - **Semantic Search**: Search through NeurIPS 2025 papers using natural language queries
-- **Advanced Filtering**: Filter by author, affiliation, and session
+- **Advanced Filtering**: Filter by author, affiliation, session, and conference day/time (AM/PM)
 - **Deep Dive Chat**: Ask questions about selected papers using OpenAI or Google Gemini
+  - **Smart Pre-upload**: Papers are uploaded when you open the chat panel, making your first query instant
+  - **File Caching**: Papers are cached per session - no re-uploading on subsequent questions
+  - **Full Paper Access**: Gemini reads complete PDFs natively (no truncation)
 - **Markdown & LaTeX Support**: Full rendering of mathematical formulas and formatted text
 - **Customizable System Prompts**: Configure how the AI responds to your questions
 - **Model Selection**: Choose from available OpenAI and Gemini models
@@ -101,13 +104,18 @@ The frontend will run on http://localhost:3000
 ## Usage
 
 1. **Search Papers**: Enter keywords or research questions in the search box
-2. **Filter Results**: Use the dropdowns to filter by author, affiliation, or session
+2. **Filter Results**: 
+   - Use the dropdowns to filter by author, affiliation, or session
+   - Click day/time buttons to filter by conference schedule (Wed/Thu/Fri × AM/PM)
+   - Combine multiple filters with OR logic (e.g., "MIT" OR "Stanford")
 3. **Select Papers**: Check the papers you want to analyze
 4. **Deep Dive Chat**: 
-   - Click "Deep Dive Chat" to open the chat panel
+   - Click "Deep Dive (X)" to open the chat panel
+   - Papers are automatically uploaded in the background (Gemini only)
    - Click the settings icon to configure API keys and models
    - Ask questions about the selected papers
    - Customize the system prompt to change AI behavior
+   - Subsequent questions are instant thanks to file caching
 
 ## Data Processing
 
