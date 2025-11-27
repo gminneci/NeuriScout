@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { Paper } from '@/lib/api';
-import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { ExternalLink, ChevronDown, ChevronUp, ShoppingBasket } from 'lucide-react';
 
 interface PaperCardProps {
     paper: Paper;
     selected: boolean;
+    inBasket?: boolean;
     onToggleSelect: () => void;
 }
 
-export default function PaperCard({ paper, selected, onToggleSelect }: PaperCardProps) {
+export default function PaperCard({ paper, selected, inBasket, onToggleSelect }: PaperCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <div className={`bg-white rounded-lg sm:rounded-xl shadow-sm border transition-all ${selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100 hover:shadow-md'}`}>
+        <div className={`bg-white rounded-lg sm:rounded-xl shadow-sm border transition-all relative ${selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100 hover:shadow-md'}`}>
+            {inBasket && (
+                <div className="absolute top-2 right-2 bg-[#2596be] text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-sm z-10">
+                    <ShoppingBasket size={12} />
+                    In Basket
+                </div>
+            )}
             <div className="p-3 sm:p-6">
                 <div className="flex justify-between items-start gap-2 sm:gap-4">
                     <div className="pt-1">

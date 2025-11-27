@@ -8,7 +8,8 @@ import PaperCard from '@/app/components/PaperCard';
 import ChatPanel from '@/app/components/ChatPanel';
 import UserMenu from '@/app/components/UserMenu';
 import Autocomplete from '@/app/components/Autocomplete';
-import { Search, Filter } from 'lucide-react';
+import BasketDrawer from '@/app/components/BasketDrawer';
+import { Search, Filter, ShoppingBasket } from 'lucide-react';
 
 export default function Home() {
     const { data: session, status } = useSession();
@@ -24,7 +25,26 @@ export default function Home() {
     const [threshold, setThreshold] = useState(0.6); // Default similarity threshold (distance 0.4)
 
     const [selectedPapers, setSelectedPapers] = useState<Paper[]>([]);
+    const [basket, setBasket] = useState<Paper[]>([]);
+    const [showBasket, setShowBasket] = useState(false);
     const [showChat, setShowChat] = useState(false);
+
+    // Load basket from localStorage on mount
+    useEffect(() => {
+        const savedBasket = localStorage.getItem('deepDiveBasket');
+        if (savedBasket) {
+            try {
+                setBasket(JSON.parse(savedBasket));
+            } catch (e) {
+                console.error('Failed to load basket:', e);
+            }
+        }
+    }, []);
+
+    // Save basket to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('deepDiveBasket', JSON.stringify(basket));
+    }, [basket]);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -81,6 +101,30 @@ export default function Home() {
         }
     };
 
+    const addToBasket = () => {
+        const newPapers = selectedPapers.filter(paper => 
+            !basket.find(b => b.id === paper.id)
+        );
+        if (newPapers.length > 0) {
+            setBasket([...basket, ...newPapers]);
+        }
+        setSelectedPapers([]);
+    };
+
+    const removeFromBasket = (paperId: string) => {
+        setBasket(basket.filter(p => p.id !== paperId));
+    };
+
+    const clearBasket = () => {
+        if (confirm('Are you sure you want to clear the basket?')) {
+            setBasket([]);
+        }
+    };
+
+    const isPaperInBasket = (paperId: string) => {
+        return basket.some(p => p.id === paperId);
+    };
+
     return (
         <main className="min-h-screen bg-gray-50 pb-20">
             {/* Hero Section */}
@@ -98,7 +142,21 @@ export default function Home() {
                                 </p>
                             </div>
                         </div>
-                        <UserMenu />
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <button
+                                onClick={() => setShowBasket(true)}
+                                className="relative px-3 sm:px-4 py-2 bg-[#2596be] text-white rounded-lg hover:bg-[#3aa8d1] transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+                            >
+                                <ShoppingBasket size={18} />
+                                <span className="hidden sm:inline">Basket</span>
+                                {basket.length > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-[#f26954] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
+                                        {basket.length}
+                                    </span>
+                                )}
+                            </button>
+                            <UserMenu />
+                        </div>
                     </div>
 
                     <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
@@ -325,10 +383,11 @@ export default function Home() {
                                 </button>
                                 {selectedPapers.length > 0 && (
                                     <button
-                                        onClick={() => setShowChat(true)}
-                                        className="bg-[#2596be] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3aa8d1] shadow-sm animate-in fade-in zoom-in duration-200"
+                                        onClick={addToBasket}
+                                        className="bg-[#2596be] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3aa8d1] shadow-sm animate-in fade-in zoom-in duration-200 flex items-center gap-2"
                                     >
-                                        Deep Dive ({selectedPapers.length})
+                                        <ShoppingBasket size={16} />
+                                        Add to Basket ({selectedPapers.length})
                                     </button>
                                 )}
                             </div>
@@ -339,6 +398,7 @@ export default function Home() {
                                     key={paper.id}
                                     paper={paper}
                                     selected={!!selectedPapers.find(p => p.id === paper.id)}
+                                    inBasket={isPaperInBasket(paper.id)}
                                     onToggleSelect={() => togglePaperSelection(paper)}
                                 />
                             ))}
@@ -357,9 +417,22 @@ export default function Home() {
                 )}
             </div>
 
+            {showBasket && (
+                <BasketDrawer
+                    basket={basket}
+                    onRemove={removeFromBasket}
+                    onClear={clearBasket}
+                    onDeepDive={() => {
+                        setShowBasket(false);
+                        setShowChat(true);
+                    }}
+                    onClose={() => setShowBasket(false)}
+                />
+            )}
+
             {showChat && (
                 <ChatPanel
-                    selectedPapers={selectedPapers}
+                    selectedPapers={basket}
                     onClose={() => setShowChat(false)}
                 />
             )}
