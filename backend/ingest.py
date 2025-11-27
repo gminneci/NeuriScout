@@ -6,8 +6,9 @@ from sentence_transformers import SentenceTransformer
 import ast
 
 # Configuration
-CSV_PATH = "../data/papercopilot_neurips2025_merged_openreview.csv"
-CHROMA_PATH = "../chroma_db"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CSV_PATH = os.path.join(BASE_DIR, "data", "papercopilot_neurips2025_merged_openreview.csv")
+CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
 COLLECTION_NAME = "neurips_papers"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
