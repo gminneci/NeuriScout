@@ -12,24 +12,24 @@ export default function PaperCard({ paper, selected, onToggleSelect }: PaperCard
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <div className={`bg-white rounded-xl shadow-sm border transition-all ${selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100 hover:shadow-md'}`}>
-            <div className="p-6">
-                <div className="flex justify-between items-start gap-4">
+        <div className={`bg-white rounded-lg sm:rounded-xl shadow-sm border transition-all ${selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100 hover:shadow-md'}`}>
+            <div className="p-3 sm:p-6">
+                <div className="flex justify-between items-start gap-2 sm:gap-4">
                     <div className="pt-1">
                         <input
                             type="checkbox"
                             checked={selected}
                             onChange={onToggleSelect}
-                            className="w-5 h-5 rounded border-gray-300 text-[#40569b] focus:ring-[#40569b] cursor-pointer"
+                            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-gray-300 text-[#40569b] focus:ring-[#40569b] cursor-pointer"
                         />
                     </div>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-start gap-2">
-                            <h3 className="text-lg font-semibold text-gray-900 leading-tight cursor-pointer" onClick={onToggleSelect}>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                            <h3 className="text-sm sm:text-lg font-semibold text-gray-900 leading-tight cursor-pointer" onClick={onToggleSelect}>
                                 {paper.title}
                             </h3>
                             {paper.distance !== undefined && (
-                                <div className="shrink-0 flex flex-col items-end">
+                                <div className="shrink-0 flex flex-col items-start sm:items-end">
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${(1 - paper.distance) >= 0.8 ? 'bg-green-100 text-green-700' :
                                         (1 - paper.distance) >= 0.6 ? 'bg-yellow-100 text-yellow-700' :
                                             'bg-gray-100 text-gray-700'

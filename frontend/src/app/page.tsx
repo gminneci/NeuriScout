@@ -84,16 +84,16 @@ export default function Home() {
     return (
         <main className="min-h-screen bg-gray-50 pb-20">
             {/* Hero Section */}
-            <div className="bg-[#22367a] border-b border-[#292e4a] sticky top-0 z-10 shadow-lg">
-                <div className="max-w-5xl mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-6">
-                            <img src="/fractile-logo.png" alt="Fractile" className="h-16" />
+            <div className="bg-[#22367a] border-b border-[#292e4a] md:sticky md:top-0 z-10 shadow-lg">
+                <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <div className="flex items-center gap-2 sm:gap-6">
+                            <img src="/fractile-logo.png" alt="Fractile" className="h-8 sm:h-12 md:h-16 hidden sm:block" />
                             <div>
-                                <h1 className="text-3xl font-bold text-white mb-2">
+                                <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">
                                     NeuriScout: navigate Neurips 2025
                                 </h1>
-                                <p className="text-[#9ec1dc]">
+                                <p className="text-xs sm:text-sm text-[#9ec1dc] hidden sm:block">
                                     Explore papers, ask questions, and dive deep with AI.
                                 </p>
                             </div>
@@ -101,32 +101,34 @@ export default function Home() {
                         <UserMenu />
                     </div>
 
-                    <form onSubmit={handleSearch} className="flex gap-2">
+                    <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#f26954]" size={20} />
                             <input
                                 type="text"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                placeholder="Search for topics (e.g., 'Reinforcement Learning', 'LLM Agents')..."
-                                className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#292e4a] bg-[#22367a] text-white placeholder-[#9ec1dc] focus:outline-none focus:ring-2 focus:ring-[#40569b] focus:border-transparent shadow-sm text-lg"
+                                placeholder="Search papers..."
+                                className="w-full pl-10 pr-4 py-2 sm:py-3 rounded-lg border border-[#292e4a] bg-[#22367a] text-white placeholder-[#9ec1dc] focus:outline-none focus:ring-2 focus:ring-[#40569b] focus:border-transparent shadow-sm text-sm sm:text-lg"
                             />
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`px-4 py-3 rounded-lg border flex items-center gap-2 transition-colors ${showFilters ? 'bg-[#2596be] border-[#2596be] text-white' : 'border-[#2596be] bg-transparent text-[#2596be] hover:bg-[#2596be] hover:text-white'}`}
-                        >
-                            <Filter size={20} />
-                            Filters
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="bg-[#f26954] text-white px-8 py-3 rounded-lg font-medium hover:bg-[#ff7a63] shadow-sm disabled:opacity-50 transition-colors"
-                        >
-                            {loading ? 'Searching...' : 'Search'}
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-3 rounded-lg border flex items-center justify-center gap-2 transition-colors text-sm ${showFilters ? 'bg-[#2596be] border-[#2596be] text-white' : 'border-[#2596be] bg-transparent text-[#2596be] hover:bg-[#2596be] hover:text-white'}`}
+                            >
+                                <Filter size={18} />
+                                <span className="hidden sm:inline">Filters</span>
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="flex-1 sm:flex-initial bg-[#f26954] text-white px-4 sm:px-8 py-2 sm:py-3 rounded-lg font-medium hover:bg-[#ff7a63] shadow-sm disabled:opacity-50 transition-colors text-sm"
+                            >
+                                {loading ? 'Searching...' : 'Search'}
+                            </button>
+                        </div>
                     </form>
 
                     {showFilters && (
