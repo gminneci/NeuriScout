@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Optional, List, Union
+from pydantic import BaseModel, field_validator
+from typing import Optional, List, Union, Any
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -33,11 +33,22 @@ app.add_middleware(
 
 class SearchRequest(BaseModel):
     query: str
-    affiliation: Optional[Union[str, List[str]]] = None
-    author: Optional[Union[str, List[str]]] = None
-    session: Optional[Union[str, List[str]]] = None
+    affiliation: Optional[Any] = None
+    author: Optional[Any] = None
+    session: Optional[Any] = None
     limit: Optional[int] = 10
     threshold: Optional[float] = None # Similarity threshold (0.0 to 1.0, lower distance is better)
+    
+    @field_validator('affiliation', 'author', 'session', mode='before')
+    @classmethod
+    def validate_filter_fields(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return v
+        if isinstance(v, list):
+            return v
+        raise ValueError(f'Must be a string or list of strings, got {type(v)}')
 
 class PaperItem(BaseModel):
     url: str

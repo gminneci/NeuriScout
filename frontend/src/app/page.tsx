@@ -153,7 +153,8 @@ export default function Home() {
                                     <Autocomplete
                                         label=""
                                         value=""
-                                        onChange={(value) => {
+                                        onChange={() => {}}
+                                        onSelect={(value) => {
                                             if (value && !filters.affiliation.includes(value)) {
                                                 setFilters(prev => ({ ...prev, affiliation: [...prev.affiliation, value] }));
                                             }
@@ -183,7 +184,8 @@ export default function Home() {
                                     <Autocomplete
                                         label=""
                                         value=""
-                                        onChange={(value) => {
+                                        onChange={() => {}}
+                                        onSelect={(value) => {
                                             if (value && !filters.author.includes(value)) {
                                                 setFilters(prev => ({ ...prev, author: [...prev.author, value] }));
                                             }
@@ -213,13 +215,14 @@ export default function Home() {
                                     <Autocomplete
                                         label=""
                                         value=""
-                                        onChange={(value) => {
+                                        onChange={() => {}}
+                                        onSelect={(value) => {
                                             if (value && !filters.session.includes(value)) {
                                                 setFilters(prev => ({ ...prev, session: [...prev.session, value] }));
                                             }
                                         }}
                                         options={filterOptions.sessions}
-                                        placeholder="e.g., Poster Session 1"
+                                        placeholder="e.g., Oral"
                                     />
                                 </div>
                             </div>

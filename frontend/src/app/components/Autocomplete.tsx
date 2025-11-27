@@ -5,27 +5,33 @@ import { useState, useRef, useEffect } from 'react';
 interface AutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (value: string) => void; // New prop for selection
   options: string[];
   placeholder: string;
   label: string;
 }
 
-export default function Autocomplete({ value, onChange, options, placeholder, label }: AutocompleteProps) {
+export default function Autocomplete({ value, onChange, onSelect, options, placeholder, label }: AutocompleteProps) {
+  const [inputValue, setInputValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState<string[]>(options);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  useEffect(() => {
     // Filter options based on input
-    if (value) {
+    if (inputValue) {
       const filtered = options.filter(opt => 
-        opt.toLowerCase().includes(value.toLowerCase())
+        opt.toLowerCase().includes(inputValue.toLowerCase())
       );
       setFilteredOptions(filtered);
     } else {
       setFilteredOptions(options);
     }
-  }, [value, options]);
+  }, [inputValue, options]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -37,14 +43,28 @@ export default function Autocomplete({ value, onChange, options, placeholder, la
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleSelect = (option: string) => {
+    if (onSelect) {
+      onSelect(option);
+      setInputValue(''); // Clear input after selection for multi-select
+    } else {
+      onChange(option);
+      setInputValue(option);
+    }
+    setIsOpen(false);
+  };
+
   return (
     <div ref={wrapperRef} className="relative">
       <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
       <input
         type="text"
-        value={value}
+        value={inputValue}
         onChange={(e) => {
-          onChange(e.target.value);
+          setInputValue(e.target.value);
+          if (!onSelect) {
+            onChange(e.target.value);
+          }
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
@@ -57,10 +77,7 @@ export default function Autocomplete({ value, onChange, options, placeholder, la
             <button
               key={i}
               type="button"
-              onClick={() => {
-                onChange(option);
-                setIsOpen(false);
-              }}
+              onClick={() => handleSelect(option)}
               className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-[#9ec1dc] hover:text-[#22367a] transition-colors border-b border-gray-100 last:border-b-0"
             >
               {option}
