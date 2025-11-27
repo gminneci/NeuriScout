@@ -17,8 +17,8 @@ build/
 .env.local
 .env.production
 
-# ChromaDB
-chroma_db/
+# ChromaDB - Temporarily allowing for Railway deployment
+#chroma_db/
 
 # Data files (large datasets)
 neurips_downloads/

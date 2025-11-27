@@ -16,12 +16,21 @@ MODEL_NAME = "all-MiniLM-L6-v2"
 # Initialize ChromaDB Client (Global)
 client = chromadb.PersistentClient(path=CHROMA_PATH)
 sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=MODEL_NAME)
-collection = client.get_collection(name=COLLECTION_NAME, embedding_function=sentence_transformer_ef)
+
+# Try to get collection, but don't fail if it doesn't exist
+try:
+    collection = client.get_collection(name=COLLECTION_NAME, embedding_function=sentence_transformer_ef)
+except Exception:
+    print(f"WARNING: ChromaDB collection '{COLLECTION_NAME}' not found. Run 'python -m backend.ingest' to create it.")
+    collection = None
 
 def search_papers(query: str, n_results: int = 10, filters: dict = None, threshold: float = None):
     """
     Search for papers using semantic search and metadata filters.
     """
+    if collection is None:
+        raise RuntimeError("ChromaDB not initialized. Please run 'python -m backend.ingest' to create the database.")
+    
     where_clause = {}
     if filters:
         # ChromaDB 'where' clause supports $and, $or, etc.
@@ -244,6 +253,9 @@ def answer_question(context: str, question: str, model: str = "openai", api_key:
 _filters_cache = None
 
 def get_filters():
+    if collection is None:
+        return {"authors": [], "affiliations": [], "sessions": []}
+    
     global _filters_cache
     if _filters_cache:
         return _filters_cache
