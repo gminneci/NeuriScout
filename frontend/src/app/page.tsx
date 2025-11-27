@@ -18,7 +18,7 @@ export default function Home() {
     const [papers, setPapers] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
-    const [filters, setFilters] = useState({ affiliation: '', author: '', session: '' });
+    const [filters, setFilters] = useState({ affiliation: [] as string[], author: [] as string[], session: [] as string[] });
     const [filterOptions, setFilterOptions] = useState<{ affiliations: string[], authors: string[], sessions: string[] }>({ affiliations: [], authors: [], sessions: [] });
     const [limit, setLimit] = useState(10);
     const [threshold, setThreshold] = useState(0.6); // Default similarity threshold (distance 0.4)
@@ -130,28 +130,99 @@ export default function Home() {
                     </form>
 
                     {showFilters && (
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-in fade-in slide-in-from-top-2">
-                            <Autocomplete
-                                label="Affiliation"
-                                value={filters.affiliation}
-                                onChange={(value) => setFilters({ ...filters, affiliation: value })}
-                                options={filterOptions.affiliations}
-                                placeholder="e.g., MIT, Google"
-                            />
-                            <Autocomplete
-                                label="Author"
-                                value={filters.author}
-                                onChange={(value) => setFilters({ ...filters, author: value })}
-                                options={filterOptions.authors}
-                                placeholder="e.g., Bengio"
-                            />
-                            <Autocomplete
-                                label="Session"
-                                value={filters.session}
-                                onChange={(value) => setFilters({ ...filters, session: value })}
-                                options={filterOptions.sessions}
-                                placeholder="e.g., Poster Session 1"
-                            />
+                        <div className="mt-4 space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-in fade-in slide-in-from-top-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                                        Affiliation (select multiple - OR logic)
+                                    </label>
+                                    <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
+                                        {filters.affiliation.map((aff, idx) => (
+                                            <span key={idx} className="bg-[#40569b] text-white px-2 py-1 rounded-md text-xs flex items-center gap-1">
+                                                {aff}
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setFilters(prev => ({ ...prev, affiliation: prev.affiliation.filter((_, i) => i !== idx) }))} 
+                                                    className="hover:text-[#f26954] font-bold"
+                                                >
+                                                    ×
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <Autocomplete
+                                        label=""
+                                        value=""
+                                        onChange={(value) => {
+                                            if (value && !filters.affiliation.includes(value)) {
+                                                setFilters(prev => ({ ...prev, affiliation: [...prev.affiliation, value] }));
+                                            }
+                                        }}
+                                        options={filterOptions.affiliations}
+                                        placeholder="e.g., MIT, Google"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                                        Author (select multiple - OR logic)
+                                    </label>
+                                    <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
+                                        {filters.author.map((auth, idx) => (
+                                            <span key={idx} className="bg-[#40569b] text-white px-2 py-1 rounded-md text-xs flex items-center gap-1">
+                                                {auth}
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setFilters(prev => ({ ...prev, author: prev.author.filter((_, i) => i !== idx) }))} 
+                                                    className="hover:text-[#f26954] font-bold"
+                                                >
+                                                    ×
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <Autocomplete
+                                        label=""
+                                        value=""
+                                        onChange={(value) => {
+                                            if (value && !filters.author.includes(value)) {
+                                                setFilters(prev => ({ ...prev, author: [...prev.author, value] }));
+                                            }
+                                        }}
+                                        options={filterOptions.authors}
+                                        placeholder="e.g., Bengio"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                                        Session (select multiple - OR logic)
+                                    </label>
+                                    <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
+                                        {filters.session.map((sess, idx) => (
+                                            <span key={idx} className="bg-[#40569b] text-white px-2 py-1 rounded-md text-xs flex items-center gap-1">
+                                                {sess}
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setFilters(prev => ({ ...prev, session: prev.session.filter((_, i) => i !== idx) }))} 
+                                                    className="hover:text-[#f26954] font-bold"
+                                                >
+                                                    ×
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <Autocomplete
+                                        label=""
+                                        value=""
+                                        onChange={(value) => {
+                                            if (value && !filters.session.includes(value)) {
+                                                setFilters(prev => ({ ...prev, session: [...prev.session, value] }));
+                                            }
+                                        }}
+                                        options={filterOptions.sessions}
+                                        placeholder="e.g., Poster Session 1"
+                                    />
+                                </div>
+                            </div>
                             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-200 pt-4 mt-2">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-1">

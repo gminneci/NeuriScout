@@ -58,22 +58,25 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
         formatted_results = []
         if results['ids']:
             for i in range(len(results['ids'])):
-                # Apply filters manually
+                # Apply filters manually with OR logic for arrays
                 metadata = results['metadatas'][i]
                 
-                # Check Affiliation
+                # Check Affiliation (OR logic if list)
                 if filters and filters.get('affiliation'):
-                    if filters['affiliation'].lower() not in metadata['affiliation'].lower():
+                    affiliations = filters['affiliation'] if isinstance(filters['affiliation'], list) else [filters['affiliation']]
+                    if not any(aff.lower() in metadata['affiliation'].lower() for aff in affiliations):
                         continue
                 
-                # Check Author
+                # Check Author (OR logic if list)
                 if filters and filters.get('author'):
-                    if filters['author'].lower() not in metadata['authors'].lower():
+                    authors = filters['author'] if isinstance(filters['author'], list) else [filters['author']]
+                    if not any(auth.lower() in metadata['authors'].lower() for auth in authors):
                         continue
                         
-                # Check Session
+                # Check Session (OR logic if list)
                 if filters and filters.get('session'):
-                    if filters['session'].lower() not in metadata['session'].lower():
+                    sessions = filters['session'] if isinstance(filters['session'], list) else [filters['session']]
+                    if not any(sess.lower() in metadata['session'].lower() for sess in sessions):
                         continue
                 
                 formatted_results.append({
@@ -109,15 +112,19 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
         for i in range(len(results['ids'][0])):
             metadata = results['metadatas'][0][i]
             
-            # Apply filters manually
+            # Apply filters manually with OR logic for arrays
             if filters and filters.get('affiliation'):
-                if filters['affiliation'].lower() not in metadata['affiliation'].lower():
+                affiliations = filters['affiliation'] if isinstance(filters['affiliation'], list) else [filters['affiliation']]
+                if not any(aff.lower() in metadata['affiliation'].lower() for aff in affiliations):
                     continue
             if filters and filters.get('author'):
-                if filters['author'].lower() not in metadata['authors'].lower():
+                authors = filters['author'] if isinstance(filters['author'], list) else [filters['author']]
+                if not any(auth.lower() in metadata['authors'].lower() for auth in authors):
                     continue
             if filters and filters.get('session'):
-                if filters['session'].lower() not in metadata['session'].lower():
+                sessions = filters['session'] if isinstance(filters['session'], list) else [filters['session']]
+                if not any(sess.lower() in metadata['session'].lower() for sess in sessions):
+                    continue
                     continue
             
             distance = results['distances'][0][i] if results['distances'] else 0.0

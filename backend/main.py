@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Union
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -33,9 +33,9 @@ app.add_middleware(
 
 class SearchRequest(BaseModel):
     query: str
-    affiliation: Optional[str] = None
-    author: Optional[str] = None
-    session: Optional[str] = None
+    affiliation: Optional[Union[str, List[str]]] = None
+    author: Optional[Union[str, List[str]]] = None
+    session: Optional[Union[str, List[str]]] = None
     limit: Optional[int] = 10
     threshold: Optional[float] = None # Similarity threshold (0.0 to 1.0, lower distance is better)
 
