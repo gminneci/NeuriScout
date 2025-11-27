@@ -1,0 +1,10 @@
+backend/
+scripts/
+data/
+chroma_db/
+venv/
+__pycache__/
+*.pyc
+.Python
+pyproject.toml
+railway-init.sh
