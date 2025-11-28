@@ -8,8 +8,9 @@ import PaperCard from '@/app/components/PaperCard';
 import ChatPanel from '@/app/components/ChatPanel';
 import UserMenu from '@/app/components/UserMenu';
 import Autocomplete from '@/app/components/Autocomplete';
-import BasketDrawer from '@/app/components/BasketDrawer';
-import { Search, Filter, ShoppingBasket } from 'lucide-react';
+import { Search, Filter, Sparkles } from 'lucide-react';
+
+const DEEP_DIVE_STORAGE_KEY = 'neuriscout.deepDivePapers';
 
 export default function Home() {
     const { data: session, status } = useSession();
@@ -24,27 +25,26 @@ export default function Home() {
     const [limit, setLimit] = useState(10);
     const [threshold, setThreshold] = useState(0.6); // Default similarity threshold (distance 0.4)
 
-    const [selectedPapers, setSelectedPapers] = useState<Paper[]>([]);
-    const [basket, setBasket] = useState<Paper[]>([]);
-    const [showBasket, setShowBasket] = useState(false);
+    const [deepDivePapers, setDeepDivePapers] = useState<Paper[]>([]);
     const [showChat, setShowChat] = useState(false);
 
-    // Load basket from localStorage on mount
+    // Load deep dive papers from localStorage on mount
     useEffect(() => {
-        const savedBasket = localStorage.getItem('deepDiveBasket');
-        if (savedBasket) {
+        const savedPapers = localStorage.getItem(DEEP_DIVE_STORAGE_KEY) ?? localStorage.getItem('deepDiveBasket');
+        if (savedPapers) {
             try {
-                setBasket(JSON.parse(savedBasket));
+                setDeepDivePapers(JSON.parse(savedPapers));
+                localStorage.removeItem('deepDiveBasket');
             } catch (e) {
-                console.error('Failed to load basket:', e);
+                console.error('Failed to load deep dive papers:', e);
             }
         }
     }, []);
 
-    // Save basket to localStorage whenever it changes
+    // Persist deep dive papers whenever they change
     useEffect(() => {
-        localStorage.setItem('deepDiveBasket', JSON.stringify(basket));
-    }, [basket]);
+        localStorage.setItem(DEEP_DIVE_STORAGE_KEY, JSON.stringify(deepDivePapers));
+    }, [deepDivePapers]);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -77,7 +77,6 @@ export default function Home() {
         try {
             const results = await searchPapers(query, filters, limit, threshold);
             setPapers(results.results || results);
-            setSelectedPapers([]); // Reset selection on new search
         } catch (error) {
             console.error(error);
         } finally {
@@ -85,44 +84,24 @@ export default function Home() {
         }
     };
 
-    const togglePaperSelection = (paper: Paper) => {
-        if (selectedPapers.find(p => p.id === paper.id)) {
-            setSelectedPapers(selectedPapers.filter(p => p.id !== paper.id));
-        } else {
-            setSelectedPapers([...selectedPapers, paper]);
+    const toggleDeepDivePaper = (paper: Paper) => {
+        setDeepDivePapers(prev => {
+            if (prev.some(p => p.id === paper.id)) {
+                return prev.filter(p => p.id !== paper.id);
+            }
+            return [...prev, paper];
+        });
+    };
+
+    const isPaperInDeepDive = (paperId: string) => deepDivePapers.some(p => p.id === paperId);
+
+    const clearDeepDive = () => {
+        if (deepDivePapers.length === 0) {
+            return;
         }
-    };
-
-    const selectAll = () => {
-        if (selectedPapers.length === papers.length) {
-            setSelectedPapers([]);
-        } else {
-            setSelectedPapers([...papers]);
+        if (confirm('Clear all papers from Deep Dive?')) {
+            setDeepDivePapers([]);
         }
-    };
-
-    const addToBasket = () => {
-        const newPapers = selectedPapers.filter(paper => 
-            !basket.find(b => b.id === paper.id)
-        );
-        if (newPapers.length > 0) {
-            setBasket([...basket, ...newPapers]);
-        }
-        setSelectedPapers([]);
-    };
-
-    const removeFromBasket = (paperId: string) => {
-        setBasket(basket.filter(p => p.id !== paperId));
-    };
-
-    const clearBasket = () => {
-        if (confirm('Are you sure you want to clear the basket?')) {
-            setBasket([]);
-        }
-    };
-
-    const isPaperInBasket = (paperId: string) => {
-        return basket.some(p => p.id === paperId);
     };
 
     return (
@@ -143,18 +122,6 @@ export default function Home() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3">
-                            <button
-                                onClick={() => setShowBasket(true)}
-                                className="relative px-3 sm:px-4 py-2 bg-[#2596be] text-white rounded-lg hover:bg-[#3aa8d1] transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
-                            >
-                                <ShoppingBasket size={18} />
-                                <span className="hidden sm:inline">Basket</span>
-                                {basket.length > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-[#f26954] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-                                        {basket.length}
-                                    </span>
-                                )}
-                            </button>
                             <UserMenu />
                         </div>
                     </div>
@@ -374,22 +341,33 @@ export default function Home() {
                             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
                                 Found {papers.length} Papers
                             </h2>
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={selectAll}
-                                    className="text-sm text-[#f26954] hover:text-[#ff7a63] hover:underline font-medium"
-                                >
-                                    {selectedPapers.length === papers.length ? 'Deselect All' : 'Select All'}
-                                </button>
-                                {selectedPapers.length > 0 && (
+                            <div className="flex items-center gap-3">
+                                {deepDivePapers.length > 0 && (
                                     <button
-                                        onClick={addToBasket}
-                                        className="bg-[#2596be] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3aa8d1] shadow-sm animate-in fade-in zoom-in duration-200 flex items-center gap-2"
+                                        type="button"
+                                        onClick={clearDeepDive}
+                                        className="text-xs text-[#f26954] hover:text-[#ff7a63] hover:underline font-medium"
                                     >
-                                        <ShoppingBasket size={16} />
-                                        Add to Basket ({selectedPapers.length})
+                                        Clear Deep Dive
                                     </button>
                                 )}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (deepDivePapers.length > 0) {
+                                            setShowChat(true);
+                                        }
+                                    }}
+                                    disabled={deepDivePapers.length === 0}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-colors ${
+                                        deepDivePapers.length === 0
+                                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                            : 'bg-[#2596be] text-white hover:bg-[#3aa8d1]'
+                                    }`}
+                                >
+                                    <Sparkles size={16} />
+                                    Deep Dive{deepDivePapers.length > 0 ? ` (${deepDivePapers.length})` : ''}
+                                </button>
                             </div>
                         </div>
                         <div className="grid gap-6">
@@ -397,9 +375,8 @@ export default function Home() {
                                 <PaperCard
                                     key={paper.id}
                                     paper={paper}
-                                    selected={!!selectedPapers.find(p => p.id === paper.id)}
-                                    inBasket={isPaperInBasket(paper.id)}
-                                    onToggleSelect={() => togglePaperSelection(paper)}
+                                    inDeepDive={isPaperInDeepDive(paper.id)}
+                                    onToggleDeepDive={() => toggleDeepDivePaper(paper)}
                                 />
                             ))}
                         </div>
@@ -416,23 +393,9 @@ export default function Home() {
                     )
                 )}
             </div>
-
-            {showBasket && (
-                <BasketDrawer
-                    basket={basket}
-                    onRemove={removeFromBasket}
-                    onClear={clearBasket}
-                    onDeepDive={() => {
-                        setShowBasket(false);
-                        setShowChat(true);
-                    }}
-                    onClose={() => setShowBasket(false)}
-                />
-            )}
-
             {showChat && (
                 <ChatPanel
-                    selectedPapers={basket}
+                    selectedPapers={deepDivePapers}
                     onClose={() => setShowChat(false)}
                 />
             )}
