@@ -6,10 +6,11 @@ A full-stack application for searching and analyzing NeurIPS 2025 research paper
 
 - **Semantic Search**: Search through NeurIPS 2025 papers using natural language queries
 - **Advanced Filtering**: Filter by author, affiliation, session, and conference day/time (AM/PM)
-- **Deep Dive Chat**: Ask questions about selected papers using OpenAI or Google Gemini
-  - **Smart Pre-upload**: Papers are uploaded when you open the chat panel, making your first query instant
-  - **File Caching**: Papers are cached per session - no re-uploading on subsequent questions
-  - **Full Paper Access**: Gemini reads complete PDFs natively (no truncation)
+- **Deep Dive Chat**: Add up to 25 papers to a Deep Dive queue and chat about them with OpenAI or Google Gemini
+   - **One-click add**: Use the button on each paper card or “Add all to Deep Dive” for the current results
+   - **Smart Pre-upload**: Papers are uploaded when you open the chat panel, making your first query instant
+   - **File Caching**: Papers are cached per session - no re-uploading on subsequent questions
+   - **Full Paper Access**: Gemini reads complete PDFs natively (no truncation)
 - **Markdown & LaTeX Support**: Full rendering of mathematical formulas and formatted text
 - **Customizable System Prompts**: Configure how the AI responds to your questions
 - **Model Selection**: Choose from available OpenAI and Gemini models
@@ -108,13 +109,15 @@ The frontend will run on http://localhost:3000
    - Use the dropdowns to filter by author, affiliation, or session
    - Click day/time buttons to filter by conference schedule (Wed/Thu/Fri × AM/PM)
    - Combine multiple filters with OR logic (e.g., "MIT" OR "Stanford")
-3. **Select Papers**: Check the papers you want to analyze
-4. **Deep Dive Chat**: 
-   - Click "Deep Dive (X)" to open the chat panel
+3. **Build Your Deep Dive**:
+   - Click "Add to Deep Dive" on individual paper cards (or "Add all to Deep Dive" for the current results)
+   - Track how many slots remain (up to 25 papers can be active at once)
+   - Remove papers from the Deep Dive button if you want to swap them out
+4. **Deep Dive Chat**:
+   - Click "Deep Dive (X/25)" to open the chat panel
    - Papers are automatically uploaded in the background (Gemini only)
    - Click the settings icon to configure API keys and models
-   - Ask questions about the selected papers
-   - Customize the system prompt to change AI behavior
+   - Ask questions about the Deep Dive papers and tweak the system prompt anytime
    - Subsequent questions are instant thanks to file caching
 
 ## Data Processing

@@ -8,7 +8,10 @@ import PaperCard from '@/app/components/PaperCard';
 import ChatPanel from '@/app/components/ChatPanel';
 import UserMenu from '@/app/components/UserMenu';
 import Autocomplete from '@/app/components/Autocomplete';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Sparkles } from 'lucide-react';
+
+const DEEP_DIVE_STORAGE_KEY = 'neuriscout.deepDivePapers';
+const MAX_DEEP_DIVE_PAPERS = 25;
 
 export default function Home() {
     const { data: session, status } = useSession();
@@ -23,8 +26,26 @@ export default function Home() {
     const [limit, setLimit] = useState(10);
     const [threshold, setThreshold] = useState(0.6); // Default similarity threshold (distance 0.4)
 
-    const [selectedPapers, setSelectedPapers] = useState<Paper[]>([]);
+    const [deepDivePapers, setDeepDivePapers] = useState<Paper[]>([]);
     const [showChat, setShowChat] = useState(false);
+
+    // Load deep dive papers from localStorage on mount
+    useEffect(() => {
+        const savedPapers = localStorage.getItem(DEEP_DIVE_STORAGE_KEY) ?? localStorage.getItem('deepDiveBasket');
+        if (savedPapers) {
+            try {
+                setDeepDivePapers(JSON.parse(savedPapers));
+                localStorage.removeItem('deepDiveBasket');
+            } catch (e) {
+                console.error('Failed to load deep dive papers:', e);
+            }
+        }
+    }, []);
+
+    // Persist deep dive papers whenever they change
+    useEffect(() => {
+        localStorage.setItem(DEEP_DIVE_STORAGE_KEY, JSON.stringify(deepDivePapers));
+    }, [deepDivePapers]);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -57,7 +78,6 @@ export default function Home() {
         try {
             const results = await searchPapers(query, filters, limit, threshold);
             setPapers(results.results || results);
-            setSelectedPapers([]); // Reset selection on new search
         } catch (error) {
             console.error(error);
         } finally {
@@ -65,26 +85,61 @@ export default function Home() {
         }
     };
 
-    const togglePaperSelection = (paper: Paper) => {
-        if (selectedPapers.find(p => p.id === paper.id)) {
-            setSelectedPapers(selectedPapers.filter(p => p.id !== paper.id));
-        } else {
-            setSelectedPapers([...selectedPapers, paper]);
+    const toggleDeepDivePaper = (paper: Paper) => {
+        setDeepDivePapers(prev => {
+            if (prev.some(p => p.id === paper.id)) {
+                return prev.filter(p => p.id !== paper.id);
+            }
+            if (prev.length >= MAX_DEEP_DIVE_PAPERS) {
+                alert(`Deep Dive currently supports up to ${MAX_DEEP_DIVE_PAPERS} papers. Remove a paper before adding another.`);
+                return prev;
+            }
+            return [...prev, paper];
+        });
+    };
+
+    const isPaperInDeepDive = (paperId: string) => deepDivePapers.some(p => p.id === paperId);
+
+    const clearDeepDive = () => {
+        if (deepDivePapers.length === 0) {
+            return;
+        }
+        if (confirm('Clear all papers from Deep Dive?')) {
+            setDeepDivePapers([]);
         }
     };
 
-    const selectAll = () => {
-        if (selectedPapers.length === papers.length) {
-            setSelectedPapers([]);
-        } else {
-            setSelectedPapers([...papers]);
+    const addAllToDeepDive = () => {
+        if (!papers || papers.length === 0) {
+            return;
         }
+        setDeepDivePapers(prev => {
+            if (prev.length >= MAX_DEEP_DIVE_PAPERS) {
+                alert(`Deep Dive is limited to ${MAX_DEEP_DIVE_PAPERS} papers.`);
+                return prev;
+            }
+            const existingIds = new Set(prev.map(p => p.id));
+            const additions = papers.filter(p => !existingIds.has(p.id));
+            if (additions.length === 0) {
+                return prev;
+            }
+            const availableSlots = MAX_DEEP_DIVE_PAPERS - prev.length;
+            const limitedAdditions = additions.slice(0, availableSlots);
+            if (limitedAdditions.length < additions.length) {
+                alert(`Added ${limitedAdditions.length} papers. Remove a paper if you want to include more (max ${MAX_DEEP_DIVE_PAPERS}).`);
+            }
+            return [...prev, ...limitedAdditions];
+        });
     };
+
+    const allPapersAlreadyInDeepDive = papers.length > 0 && papers.every(p => isPaperInDeepDive(p.id));
+    const deepDiveFull = deepDivePapers.length >= MAX_DEEP_DIVE_PAPERS;
+    const deepDiveSlotsRemaining = Math.max(0, MAX_DEEP_DIVE_PAPERS - deepDivePapers.length);
 
     return (
         <main className="min-h-screen bg-gray-50 pb-20">
             {/* Hero Section */}
-            <div className="bg-[#22367a] border-b border-[#292e4a] md:sticky md:top-0 z-10 shadow-lg">
+            <div className="bg-[#22367a] border-b border-[#292e4a] shadow-lg">
                 <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <div className="flex items-center gap-2 sm:gap-6">
@@ -98,7 +153,9 @@ export default function Home() {
                                 </p>
                             </div>
                         </div>
-                        <UserMenu />
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <UserMenu />
+                        </div>
                     </div>
 
                     <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
@@ -313,24 +370,61 @@ export default function Home() {
                 {papers && papers.length > 0 ? (
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                                Found {papers.length} Papers
-                            </h2>
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={selectAll}
-                                    className="text-sm text-[#f26954] hover:text-[#ff7a63] hover:underline font-medium"
-                                >
-                                    {selectedPapers.length === papers.length ? 'Deselect All' : 'Select All'}
-                                </button>
-                                {selectedPapers.length > 0 && (
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                                    Found {papers.length} Papers
+                                </h2>
+                                {papers.length > 0 && (
                                     <button
-                                        onClick={() => setShowChat(true)}
-                                        className="bg-[#2596be] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3aa8d1] shadow-sm animate-in fade-in zoom-in duration-200"
+                                        type="button"
+                                        onClick={addAllToDeepDive}
+                                        disabled={allPapersAlreadyInDeepDive || deepDiveFull}
+                                        className={`flex items-center gap-1 text-xs sm:text-sm font-medium transition-colors ${
+                                            allPapersAlreadyInDeepDive || deepDiveFull
+                                                ? 'text-gray-400 cursor-not-allowed'
+                                                : 'text-[#2596be] hover:text-[#3aa8d1]'
+                                        }`}
+                                        title={deepDiveFull ? `Limit of ${MAX_DEEP_DIVE_PAPERS} papers reached` : undefined}
                                     >
-                                        Deep Dive ({selectedPapers.length})
+                                        <Sparkles size={14} />
+                                        Add all to Deep Dive
                                     </button>
                                 )}
+                                <span className="text-[11px] text-gray-400 hidden sm:inline">
+                                    {deepDiveSlotsRemaining > 0
+                                        ? `${deepDiveSlotsRemaining} slot${deepDiveSlotsRemaining === 1 ? '' : 's'} left`
+                                        : `Limit ${MAX_DEEP_DIVE_PAPERS} reached`}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {deepDivePapers.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={clearDeepDive}
+                                        className="text-xs text-[#f26954] hover:text-[#ff7a63] hover:underline font-medium"
+                                    >
+                                        Clear Deep Dive
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (deepDivePapers.length > 0) {
+                                            setShowChat(true);
+                                        }
+                                    }}
+                                    disabled={deepDivePapers.length === 0}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-colors ${
+                                        deepDivePapers.length === 0
+                                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                            : 'bg-[#2596be] text-white hover:bg-[#3aa8d1]'
+                                    }`}
+                                >
+                                    <Sparkles size={16} />
+                                    {deepDivePapers.length > 0
+                                        ? `Deep Dive (${deepDivePapers.length}/${MAX_DEEP_DIVE_PAPERS})`
+                                        : 'Deep Dive'}
+                                </button>
                             </div>
                         </div>
                         <div className="grid gap-6">
@@ -338,8 +432,9 @@ export default function Home() {
                                 <PaperCard
                                     key={paper.id}
                                     paper={paper}
-                                    selected={!!selectedPapers.find(p => p.id === paper.id)}
-                                    onToggleSelect={() => togglePaperSelection(paper)}
+                                    inDeepDive={isPaperInDeepDive(paper.id)}
+                                    deepDiveFull={deepDiveFull}
+                                    onToggleDeepDive={() => toggleDeepDivePaper(paper)}
                                 />
                             ))}
                         </div>
@@ -356,10 +451,9 @@ export default function Home() {
                     )
                 )}
             </div>
-
             {showChat && (
                 <ChatPanel
-                    selectedPapers={selectedPapers}
+                    selectedPapers={deepDivePapers}
                     onClose={() => setShowChat(false)}
                 />
             )}

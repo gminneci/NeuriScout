@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Paper, chatWithPapers, PaperItem, getGeminiModels, getOpenAIModels, GeminiModel } from '@/lib/api';
-import { X, Send, Bot, Settings, ChevronDown, ChevronUp, Maximize2, Minimize2, Edit3 } from 'lucide-react';
+import { X, Send, Bot, Settings, Maximize2, Minimize2, Edit3 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -212,8 +212,7 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
         }
     }, [isResizing, inputHeight]);
 
-    const handleSend = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const submitMessage = async () => {
         if (!input.trim()) return;
 
         const userMsg = input;
@@ -230,20 +229,22 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
             const currentKey = model === 'openai' ? apiKeys.openai : apiKeys.gemini;
             console.log('Sending API key:', currentKey ? 'Key present (length: ' + currentKey.length + ')' : 'No key');
             const res = await chatWithPapers(
-                paperItems, 
-                userMsg, 
-                model, 
+                paperItems,
+                userMsg,
+                model,
                 currentKey || undefined,
                 model === 'gemini' ? selectedGeminiModel : undefined,
                 model === 'openai' ? selectedOpenaiModel : undefined,
                 systemPrompt
             );
-            
+
             setMessages(prev => [...prev, { role: 'assistant', content: res.answer }]);
-        } catch (error: any) {
-            console.error("Chat error:", error);
-            const errorMessage = error.message || "Error: Could not fetch answer. Please check your API key.";
-            
+        } catch (error: unknown) {
+            console.error('Chat error:', error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Error: Could not fetch answer. Please check your API key.';
+
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: errorMessage,
@@ -253,6 +254,11 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        await submitMessage();
     };
 
     return (
@@ -518,7 +524,7 @@ export default function ChatPanel({ selectedPapers, onClose }: ChatPanelProps) {
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    handleSend(e as any);
+                                    void submitMessage();
                                 }
                             }}
                             placeholder="Ask a question... (Shift+Enter for new line)"

@@ -18,7 +18,10 @@ export async function searchPapers(
     limit?: number,
     threshold?: number
 ) {
-    const body: any = { query, ...filters };
+    const body: Record<string, unknown> = { query };
+    if (filters) {
+        Object.assign(body, filters);
+    }
     if (limit !== undefined) body.limit = limit;
     if (threshold !== undefined) body.threshold = threshold;
     const response = await fetch(`${API_URL}/search`, {
