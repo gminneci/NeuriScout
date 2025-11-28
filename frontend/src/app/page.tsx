@@ -139,7 +139,7 @@ export default function Home() {
     return (
         <main className="min-h-screen bg-gray-50 pb-20">
             {/* Hero Section */}
-            <div className="bg-[#22367a] border-b border-[#292e4a] md:sticky md:top-0 z-10 shadow-lg">
+            <div className="bg-[#22367a] border-b border-[#292e4a] shadow-lg">
                 <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <div className="flex items-center gap-2 sm:gap-6">
