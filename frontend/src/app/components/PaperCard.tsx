@@ -5,10 +5,11 @@ import { ExternalLink, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 interface PaperCardProps {
     paper: Paper;
     inDeepDive?: boolean;
+    deepDiveFull?: boolean;
     onToggleDeepDive: () => void;
 }
 
-export default function PaperCard({ paper, inDeepDive, onToggleDeepDive }: PaperCardProps) {
+export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDeepDive }: PaperCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -102,12 +103,21 @@ export default function PaperCard({ paper, inDeepDive, onToggleDeepDive }: Paper
                         )}
                     </div>
                     <button
-                        onClick={onToggleDeepDive}
+                        onClick={() => {
+                            if (!inDeepDive && deepDiveFull) {
+                                return;
+                            }
+                            onToggleDeepDive();
+                        }}
+                        disabled={!inDeepDive && !!deepDiveFull}
                         className={`flex items-center justify-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm ${
                             inDeepDive
                                 ? 'bg-[#22367a] text-white hover:bg-[#31488e]'
-                                : 'bg-[#2596be] text-white hover:bg-[#3aa8d1]'
+                                : deepDiveFull
+                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                    : 'bg-[#2596be] text-white hover:bg-[#3aa8d1]'
                         }`}
+                        title={(!inDeepDive && deepDiveFull) ? 'Deep Dive is limited to 10 papers' : undefined}
                     >
                         <Sparkles size={16} />
                         {inDeepDive ? 'Remove from Deep Dive' : 'Add to Deep Dive'}

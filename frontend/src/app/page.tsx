@@ -11,6 +11,7 @@ import Autocomplete from '@/app/components/Autocomplete';
 import { Search, Filter, Sparkles } from 'lucide-react';
 
 const DEEP_DIVE_STORAGE_KEY = 'neuriscout.deepDivePapers';
+const MAX_DEEP_DIVE_PAPERS = 25;
 
 export default function Home() {
     const { data: session, status } = useSession();
@@ -89,6 +90,10 @@ export default function Home() {
             if (prev.some(p => p.id === paper.id)) {
                 return prev.filter(p => p.id !== paper.id);
             }
+            if (prev.length >= MAX_DEEP_DIVE_PAPERS) {
+                alert(`Deep Dive currently supports up to ${MAX_DEEP_DIVE_PAPERS} papers. Remove a paper before adding another.`);
+                return prev;
+            }
             return [...prev, paper];
         });
     };
@@ -103,6 +108,33 @@ export default function Home() {
             setDeepDivePapers([]);
         }
     };
+
+    const addAllToDeepDive = () => {
+        if (!papers || papers.length === 0) {
+            return;
+        }
+        setDeepDivePapers(prev => {
+            if (prev.length >= MAX_DEEP_DIVE_PAPERS) {
+                alert(`Deep Dive is limited to ${MAX_DEEP_DIVE_PAPERS} papers.`);
+                return prev;
+            }
+            const existingIds = new Set(prev.map(p => p.id));
+            const additions = papers.filter(p => !existingIds.has(p.id));
+            if (additions.length === 0) {
+                return prev;
+            }
+            const availableSlots = MAX_DEEP_DIVE_PAPERS - prev.length;
+            const limitedAdditions = additions.slice(0, availableSlots);
+            if (limitedAdditions.length < additions.length) {
+                alert(`Added ${limitedAdditions.length} papers. Remove a paper if you want to include more (max ${MAX_DEEP_DIVE_PAPERS}).`);
+            }
+            return [...prev, ...limitedAdditions];
+        });
+    };
+
+    const allPapersAlreadyInDeepDive = papers.length > 0 && papers.every(p => isPaperInDeepDive(p.id));
+    const deepDiveFull = deepDivePapers.length >= MAX_DEEP_DIVE_PAPERS;
+    const deepDiveSlotsRemaining = Math.max(0, MAX_DEEP_DIVE_PAPERS - deepDivePapers.length);
 
     return (
         <main className="min-h-screen bg-gray-50 pb-20">
@@ -338,9 +370,32 @@ export default function Home() {
                 {papers && papers.length > 0 ? (
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                                Found {papers.length} Papers
-                            </h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                                    Found {papers.length} Papers
+                                </h2>
+                                {papers.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={addAllToDeepDive}
+                                        disabled={allPapersAlreadyInDeepDive || deepDiveFull}
+                                        className={`flex items-center gap-1 text-xs sm:text-sm font-medium transition-colors ${
+                                            allPapersAlreadyInDeepDive || deepDiveFull
+                                                ? 'text-gray-400 cursor-not-allowed'
+                                                : 'text-[#2596be] hover:text-[#3aa8d1]'
+                                        }`}
+                                        title={deepDiveFull ? `Limit of ${MAX_DEEP_DIVE_PAPERS} papers reached` : undefined}
+                                    >
+                                        <Sparkles size={14} />
+                                        Add all to Deep Dive
+                                    </button>
+                                )}
+                                <span className="text-[11px] text-gray-400 hidden sm:inline">
+                                    {deepDiveSlotsRemaining > 0
+                                        ? `${deepDiveSlotsRemaining} slot${deepDiveSlotsRemaining === 1 ? '' : 's'} left`
+                                        : `Limit ${MAX_DEEP_DIVE_PAPERS} reached`}
+                                </span>
+                            </div>
                             <div className="flex items-center gap-3">
                                 {deepDivePapers.length > 0 && (
                                     <button
@@ -366,7 +421,9 @@ export default function Home() {
                                     }`}
                                 >
                                     <Sparkles size={16} />
-                                    Deep Dive{deepDivePapers.length > 0 ? ` (${deepDivePapers.length})` : ''}
+                                    {deepDivePapers.length > 0
+                                        ? `Deep Dive (${deepDivePapers.length}/${MAX_DEEP_DIVE_PAPERS})`
+                                        : 'Deep Dive'}
                                 </button>
                             </div>
                         </div>
@@ -376,6 +433,7 @@ export default function Home() {
                                     key={paper.id}
                                     paper={paper}
                                     inDeepDive={isPaperInDeepDive(paper.id)}
+                                    deepDiveFull={deepDiveFull}
                                     onToggleDeepDive={() => toggleDeepDivePaper(paper)}
                                 />
                             ))}
