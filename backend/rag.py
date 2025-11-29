@@ -48,11 +48,10 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
     
     # Handle wildcard or empty query (Metadata filtering only)
     if not query or query.strip() == "*":
-        # Fetch a large number of results (or all) to filter in Python
-        # Chroma's .get() supports limit. We'll set a high limit.
+        # Fetch a large number of results to filter in Python
         # We DO NOT pass 'where' here because we need "contains" logic which Chroma doesn't support well for strings.
         results = collection.get(
-            limit=2000 # Fetch enough to filter. 
+            limit=10000  # High limit to cover all items
         )
         
         formatted_results = []
@@ -79,38 +78,19 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                     if not any(sess.lower() in metadata['session'].lower() for sess in sessions):
                         continue
                 
-                # Check Day (OR logic if list) - extract date and time from start_time
+                # Check Day filter (OR logic if list)
                 if filters and filters.get('day'):
                     days = filters['day'] if isinstance(filters['day'], list) else [filters['day']]
-                    start_time = metadata.get('start_time', '')
-                    if start_time and 'T' in start_time:
-                        paper_date = start_time.split('T')[0]  # Extract YYYY-MM-DD
-                        paper_time = start_time.split('T')[1] if 'T' in start_time else ''
-                        paper_hour = int(paper_time.split(':')[0]) if paper_time and ':' in paper_time else 0
-                        
-                        match_found = False
-                        for day in days:
-                            # Check if day filter includes AM/PM
-                            if ' AM' in day or ' PM' in day:
-                                date_part = day.replace(' AM', '').replace(' PM', '')
-                                if date_part in paper_date:
-                                    if ' AM' in day and paper_hour < 12:
-                                        match_found = True
-                                        break
-                                    elif ' PM' in day and paper_hour >= 12:
-                                        match_found = True
-                                        break
-                            else:
-                                # No AM/PM specified, match any time on that date
-                                if day in paper_date:
-                                    match_found = True
-                                    break
-                        
-                        if not match_found:
-                            continue
-                    else:
-                        continue  # Skip papers without valid start_time
+                    item_day = metadata.get('day', '')
+                    if not any(day == item_day for day in days):
+                        continue
                 
+                # Check AM/PM filter
+                if filters and filters.get('ampm'):
+                    item_ampm = metadata.get('ampm', '')
+                    if item_ampm != filters['ampm']:
+                        continue
+
                 formatted_results.append({
                     "id": results['ids'][i],
                     "title": metadata['title'],
@@ -430,7 +410,7 @@ _filters_cache = None
 
 def get_filters():
     if collection is None:
-        return {"authors": [], "affiliations": [], "sessions": []}
+        return {"authors": [], "affiliations": [], "sessions": [], "days": [], "ampm": ["AM", "PM"]}
     
     global _filters_cache
     if _filters_cache:
@@ -438,14 +418,21 @@ def get_filters():
         
     import pandas as pd
     try:
-        # Read CSV to get unique values
-        # CSV is now in the data/ directory
-        csv_path = "../data/papercopilot_neurips2025_merged_openreview.csv"
-        if not os.path.exists(csv_path):
-             # Fallback if running from root
-             csv_path = "data/papercopilot_neurips2025_merged_openreview.csv"
-             
-        df = pd.read_csv(csv_path)
+        # Read both CSV files to get unique values
+        papers_path = "../data/papercopilot_neurips2025_merged_openreview.csv"
+        if not os.path.exists(papers_path):
+            papers_path = "data/papercopilot_neurips2025_merged_openreview.csv"
+            
+        events_path = "../data/neurips_2025_enriched_events.csv"
+        if not os.path.exists(events_path):
+            events_path = "data/neurips_2025_enriched_events.csv"
+        
+        # Read both CSVs
+        df_papers = pd.read_csv(papers_path)
+        df_events = pd.read_csv(events_path) if os.path.exists(events_path) else pd.DataFrame()
+        
+        # Combine for filters
+        df = pd.concat([df_papers, df_events], ignore_index=True) if not df_events.empty else df_papers
         
         # Helper to split and clean
         def get_unique(col):
@@ -463,12 +450,44 @@ def get_filters():
                         values.add(clean)
             return sorted(list(values))
 
+        # Derive day list (Tue to Sun) from both CSVs
+        # Prefer actual values present in neurips_starttime
+        # Filter out Monday (Dec 1) - events in Mexico, not San Diego
+        days_set = set()
+        if "neurips_starttime" in df.columns:
+            for v in df["neurips_starttime"].dropna():
+                try:
+                    date_part = str(v).split('T')[0]
+                    # Filter: San Diego events only (Tue Dec 2 - Sun Dec 7)
+                    if date_part and date_part >= "2025-12-02" and date_part <= "2025-12-07":
+                        days_set.add(date_part)
+                except Exception:
+                    pass
+        days = sorted(days_set)
+        # If empty, fall back to known conference dates (Dec 1-7, 2025)
+        if not days:
+            days = [
+                "2025-12-01",
+                "2025-12-02",
+                "2025-12-03",
+                "2025-12-04",
+                "2025-12-05",
+                "2025-12-06",
+                "2025-12-07",
+            ]
+
+        # Build sessions excluding any Mexico City related entries
+        raw_sessions = get_unique("neurips_session")
+        sessions = [s for s in raw_sessions if 'mexico' not in s.lower()]
+
         _filters_cache = {
             "affiliations": get_unique("affiliation"),
             "authors": get_unique("authors"),
-            "sessions": get_unique("neurips_session")
+            "sessions": sessions,
+            "days": days,
+            "ampm": ["AM", "PM"]
         }
         return _filters_cache
     except Exception as e:
         print(f"Error loading filters: {e}")
-        return {"affiliations": [], "authors": [], "sessions": []}
+        return {"affiliations": [], "authors": [], "sessions": [], "days": [], "ampm": ["AM", "PM"]}

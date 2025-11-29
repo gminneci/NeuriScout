@@ -8,7 +8,8 @@ import ast
 # Configuration
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV_PATH = os.path.join(BASE_DIR, "data", "papercopilot_neurips2025_merged_openreview.csv")
-CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
+EVENTS_CSV_PATH = os.path.join(BASE_DIR, "data", "neurips_2025_enriched_events.csv")
+CHROMA_PATH = os.getenv("CHROMA_DB_PATH", os.path.join(BASE_DIR, "chroma_db"))
 COLLECTION_NAME = "neurips_papers"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
@@ -27,9 +28,27 @@ def main():
     print(f"Loading data from {CSV_PATH}...")
     df = pd.read_csv(CSV_PATH)
     
-    # Filter out rows without abstracts or titles
-    # Filter out rows without abstracts or titles
-    df = df.dropna(subset=['neurips_abstract', 'title'])
+    if os.path.exists(EVENTS_CSV_PATH):
+        print(f"Loading events from {EVENTS_CSV_PATH}...")
+        df_events = pd.read_csv(EVENTS_CSV_PATH)
+        print(f"Loaded {len(df_events)} events.")
+        df = pd.concat([df, df_events], ignore_index=True)
+
+    # Filter: keep only San Diego events (exclude Mexico City)
+    before_count = len(df)
+    # Drop any row whose session mentions Mexico or whose start date is 2025-12-01 (Mexico day)
+    df = df[~df.get('neurips_session', '').astype(str).str.contains('mexico', case=False, na=False)]
+    if 'neurips_starttime' in df.columns:
+        df = df[~df['neurips_starttime'].astype(str).str.startswith('2025-12-01')]
+    after_count = len(df)
+    removed = before_count - after_count
+    print(f"Filtered out {removed} Mexico City rows; {after_count} remain (San Diego only).")
+    
+    # Fill missing abstracts with empty string to include events without abstracts
+    df['neurips_abstract'] = df['neurips_abstract'].fillna("")
+    
+    # Filter out rows without titles
+    df = df.dropna(subset=['title'])
     
     # Aggregate duplicate papers (same title)
     # We want to collect all sessions and affiliations for the same paper
@@ -40,6 +59,7 @@ def main():
         'neurips_paper_url': 'first',
         'openreview_urls': 'first',
         'neurips_starttime': 'first',
+        'neurips_event_type': 'first',
         'affiliation': lambda x: '; '.join(sorted(set([i.strip() for s in x.dropna() for i in str(s).split(';') if i.strip()]))),
         'neurips_session': lambda x: '; '.join(sorted(set([i.strip() for s in x.dropna() for i in str(s).split(';') if i.strip()])))
     }
@@ -76,9 +96,31 @@ def main():
     print("Processing papers...")
     for idx, row in df.iterrows():
         # Create a rich text representation for embedding
-        # Title + Abstract is usually best
-        text_to_embed = f"Title: {row['title']}\nAbstract: {row['neurips_abstract']}"
+        # Title + Abstract + Event Type is usually best
+        event_type = str(row['neurips_event_type']) if not pd.isna(row['neurips_event_type']) else ""
         
+        # Use title as abstract if abstract is missing
+        abstract_text = row['neurips_abstract']
+        if not abstract_text:
+            abstract_text = row['title']
+            
+        text_to_embed = f"Title: {row['title']}\nType: {event_type}\nAbstract: {abstract_text}"
+        
+        # Derive day and ampm separately from start time if available
+        start_time_val = str(row['neurips_starttime']) if 'neurips_starttime' in row else ""
+        day = ""
+        ampm = ""
+        try:
+            if start_time_val and start_time_val != 'nan' and 'T' in start_time_val:
+                date_part, time_part = start_time_val.split('T', 1)
+                hour_str = time_part.split(':')[0]
+                hour = int(hour_str) if hour_str.isdigit() else 0
+                day = date_part  # Store as YYYY-MM-DD
+                ampm = 'AM' if hour < 12 else 'PM'
+        except Exception:
+            day = ""
+            ampm = ""
+
         # Prepare metadata
         # Chroma metadata must be int, float, str, or bool. No lists.
         # We'll join lists into strings.
@@ -88,10 +130,13 @@ def main():
             "authors": str(row['authors']),
             "affiliation": str(row['affiliation']),
             "session": str(row['neurips_session']) if not pd.isna(row['neurips_session']) else "",
+            "event_type": event_type,
             "year": 2025,
             "paper_url": str(row['neurips_paper_url']) if not pd.isna(row['neurips_paper_url']) else "",
             "openreview_url": str(row['openreview_urls']) if not pd.isna(row['openreview_urls']) else "",
-            "start_time": str(row['neurips_starttime']) if not pd.isna(row['neurips_starttime']) else ""
+            "start_time": str(row['neurips_starttime']) if not pd.isna(row['neurips_starttime']) else "",
+            "day": day,
+            "ampm": ampm
         }
         
         documents.append(text_to_embed)

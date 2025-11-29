@@ -37,6 +37,7 @@ class SearchRequest(BaseModel):
     author: Optional[Any] = None
     session: Optional[Any] = None
     day: Optional[Any] = None  # Filter by conference day (Dec 3, 4, or 5)
+    ampm: Optional[str] = None  # Filter by time of day: 'AM' or 'PM'
     limit: Optional[int] = 10
     threshold: Optional[float] = None # Similarity threshold (0.0 to 1.0, lower distance is better)
     
@@ -116,6 +117,8 @@ def search(request: SearchRequest):
         filters['session'] = request.session
     if request.day:
         filters['day'] = request.day
+    if request.ampm:
+        filters['ampm'] = request.ampm.upper()
         
     return rag.search_papers(
         query=request.query,

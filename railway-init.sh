@@ -1,11 +1,17 @@
 #!/bin/bash
 # One-time initialization script for Railway
 
-if [ ! -d "$CHROMA_DB_PATH" ] || [ ! -f "$CHROMA_DB_PATH/chroma.sqlite3" ]; then
-    echo "ChromaDB not found, running ingest..."
+# Set default CHROMA_DB_PATH if not set
+export CHROMA_DB_PATH=${CHROMA_DB_PATH:-/app/chroma_db}
+
+# Ensure chroma_db directory exists
+mkdir -p "$CHROMA_DB_PATH"
+
+if [ ! -f "$CHROMA_DB_PATH/chroma.sqlite3" ]; then
+    echo "ChromaDB not found at $CHROMA_DB_PATH, running ingest..."
     python -m backend.ingest
 else
-    echo "ChromaDB already exists, skipping ingest"
+    echo "ChromaDB already exists at $CHROMA_DB_PATH, skipping ingest"
 fi
 
 # Start the application
