@@ -14,7 +14,7 @@ export interface Paper {
 
 export async function searchPapers(
     query: string,
-    filters?: { affiliation?: string | string[]; author?: string | string[]; session?: string | string[]; day?: string | string[] },
+    filters?: { affiliation?: string | string[]; author?: string | string[]; session?: string | string[]; day?: string | string[]; ampm?: string },
     limit?: number,
     threshold?: number
 ) {
@@ -66,11 +66,17 @@ export async function chatWithPapers(
 }
 
 export async function getFilters() {
-    const response = await fetch(`${API_URL}/filters`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch filters');
+    try {
+        const response = await fetch(`${API_URL}/filters`);
+        if (!response.ok) {
+            console.error('Filters fetch failed status', response.status);
+            return { affiliations: [], authors: [], sessions: [], days: [], ampm: ['AM','PM'] };
+        }
+        return response.json();
+    } catch (err) {
+        console.error('Filters fetch error', err);
+        return { affiliations: [], authors: [], sessions: [], days: [], ampm: ['AM','PM'] };
     }
-    return response.json();
 }
 
 export interface GeminiModel {

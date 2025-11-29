@@ -21,8 +21,8 @@ export default function Home() {
     const [papers, setPapers] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
-    const [filters, setFilters] = useState({ affiliation: [] as string[], author: [] as string[], session: [] as string[], day: [] as string[] });
-    const [filterOptions, setFilterOptions] = useState<{ affiliations: string[], authors: string[], sessions: string[] }>({ affiliations: [], authors: [], sessions: [] });
+    const [filters, setFilters] = useState({ affiliation: [] as string[], author: [] as string[], session: [] as string[], day: [] as string[], ampm: '' });
+    const [filterOptions, setFilterOptions] = useState<{ affiliations: string[], authors: string[], sessions: string[], days: string[], ampm: string[] }>({ affiliations: [], authors: [], sessions: [], days: [], ampm: [] });
     const [limit, setLimit] = useState(10);
     const [threshold, setThreshold] = useState(0.6); // Default similarity threshold (distance 0.4)
 
@@ -285,41 +285,64 @@ export default function Home() {
                                     />
                                 </div>
                             </div>
-                            <div className="md:col-span-3">
-                                <label className="block text-xs font-medium text-gray-700 mb-2">
-                                    Conference Day & Time (select multiple - OR logic)
-                                </label>
-                                <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-                                    {[
-                                        { value: '2025-12-03 AM', label: 'Wed Dec 3 AM' },
-                                        { value: '2025-12-03 PM', label: 'Wed Dec 3 PM' },
-                                        { value: '2025-12-04 AM', label: 'Thu Dec 4 AM' },
-                                        { value: '2025-12-04 PM', label: 'Thu Dec 4 PM' },
-                                        { value: '2025-12-05 AM', label: 'Fri Dec 5 AM' },
-                                        { value: '2025-12-05 PM', label: 'Fri Dec 5 PM' },
-                                    ].map((item) => {
-                                        const isSelected = filters.day.includes(item.value);
-                                        return (
-                                            <button
-                                                key={item.value}
-                                                type="button"
-                                                onClick={() => {
-                                                    if (isSelected) {
-                                                        setFilters(prev => ({ ...prev, day: prev.day.filter(d => d !== item.value) }));
-                                                    } else {
-                                                        setFilters(prev => ({ ...prev, day: [...prev.day, item.value] }));
-                                                    }
-                                                }}
-                                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                                                    isSelected 
-                                                        ? 'bg-[#40569b] text-white' 
-                                                        : 'bg-white border border-gray-300 text-gray-700 hover:border-[#40569b]'
-                                                }`}
-                                            >
-                                                {item.label}
-                                            </button>
-                                        );
-                                    })}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                                        Day (select multiple - OR logic)
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {filterOptions.days.map((day) => {
+                                            const isSelected = filters.day.includes(day);
+                                            const dateObj = new Date(day + 'T00:00:00');
+                                            const dayLabel = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                                            return (
+                                                <button
+                                                    key={day}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setFilters(prev => ({ ...prev, day: prev.day.filter(d => d !== day) }));
+                                                        } else {
+                                                            setFilters(prev => ({ ...prev, day: [...prev.day, day] }));
+                                                        }
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                                                        isSelected 
+                                                            ? 'bg-[#40569b] text-white' 
+                                                            : 'bg-white border border-gray-300 text-gray-700 hover:border-[#40569b]'
+                                                    }`}
+                                                >
+                                                    {dayLabel}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                                        Time of Day
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {['', 'AM', 'PM'].map((ampm) => {
+                                            const isSelected = filters.ampm === ampm;
+                                            return (
+                                                <button
+                                                    key={ampm || 'any'}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFilters(prev => ({ ...prev, ampm }));
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                                                        isSelected 
+                                                            ? 'bg-[#40569b] text-white' 
+                                                            : 'bg-white border border-gray-300 text-gray-700 hover:border-[#40569b]'
+                                                    }`}
+                                                >
+                                                    {ampm || 'Any Time'}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-200 pt-4 mt-2">
@@ -372,7 +395,7 @@ export default function Home() {
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                                    Found {papers.length} Papers
+                                    Found {papers.length} Results
                                 </h2>
                                 {papers.length > 0 && (
                                     <button
@@ -445,7 +468,7 @@ export default function Home() {
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
                                 <Search className="text-gray-400" size={32} />
                             </div>
-                            <h3 className="text-lg font-medium text-gray-900">No papers found</h3>
+                            <h3 className="text-lg font-medium text-gray-900">No results found</h3>
                             <p className="text-gray-500 mt-1">Try adjusting your search or filters.</p>
                         </div>
                     )

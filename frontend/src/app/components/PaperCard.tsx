@@ -98,7 +98,7 @@ export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDee
                                 className="flex items-center gap-2 font-medium hover:text-blue-600 transition-colors"
                             >
                                 <ExternalLink size={16} />
-                                View Paper
+                                View
                             </a>
                         )}
                     </div>
