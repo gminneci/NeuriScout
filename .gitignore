@@ -24,6 +24,7 @@ chroma_db/
 neurips_downloads/
 *.csv
 !data/papercopilot_neurips2025_merged_openreview.csv
+!data/neurips_2025_enriched_events.csv
 
 # Logs
 *.log

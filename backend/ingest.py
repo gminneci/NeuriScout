@@ -9,7 +9,7 @@ import ast
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV_PATH = os.path.join(BASE_DIR, "data", "papercopilot_neurips2025_merged_openreview.csv")
 EVENTS_CSV_PATH = os.path.join(BASE_DIR, "data", "neurips_2025_enriched_events.csv")
-CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
+CHROMA_PATH = os.getenv("CHROMA_DB_PATH", os.path.join(BASE_DIR, "chroma_db"))
 COLLECTION_NAME = "neurips_papers"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
