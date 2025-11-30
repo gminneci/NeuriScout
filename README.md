@@ -238,6 +238,80 @@ Railway offers $5 free credit per month and simpler deployment:
 
 **Note**: Railway paid tier ($5/month) is recommended for reliable hosting with better resources.
 
+#### Railway Admin Endpoints
+
+The backend includes two admin endpoints for managing deployments:
+
+**GET /admin/status** - Diagnostic information:
+- Base directory and ChromaDB path
+- Data file existence and sizes (CSV files)
+- Collection status (exists, item count)
+- Example: `curl https://your-app.railway.app/admin/status`
+
+**POST /admin/reingest** - Manual data ingestion:
+- Runs the ingest process to populate ChromaDB
+- Returns stdout/stderr from the ingest process
+- Takes several minutes to complete (5,450 items)
+- Example: `curl -X POST https://your-app.railway.app/admin/reingest`
+
+**Note**: The `/admin/reingest` endpoint runs synchronously and blocks the API during execution. For large datasets, use SSH to run the ingest in the background.
+
+#### Re-running Ingest via Railway SSH
+
+If the automatic ingestion fails or you need to re-populate the database:
+
+1. **Install Railway CLI** (if not already installed):
+   ```bash
+   npm i -g @railway/cli
+   # or
+   brew install railway
+   ```
+
+2. **Authenticate**:
+   ```bash
+   railway login
+   ```
+
+3. **Copy SSH command from Railway Dashboard**:
+   - Navigate to your project in the Railway dashboard
+   - Right-click on your service
+   - Select "Copy SSH Command" from the dropdown menu
+   - This generates a command like:
+     ```bash
+     railway ssh --project=<project-id> --environment=<env-id> --service=<service-id>
+     ```
+
+4. **Connect and run ingest**:
+   ```bash
+   # Connect using the copied SSH command
+   railway ssh --project=<project-id> --environment=<env-id> --service=<service-id>
+   
+   # Inside the SSH session, run ingest in the background
+   python -m backend.ingest > /app/ingest.log 2>&1 &
+   
+   # Exit the SSH session
+   exit
+   ```
+
+5. **Monitor progress**:
+   ```bash
+   # Check collection count via the status endpoint
+   curl https://your-app.railway.app/admin/status | grep count
+   
+   # Or reconnect via SSH to check the log
+   railway ssh --project=<project-id> --environment=<env-id> --service=<service-id>
+   tail -f /app/ingest.log
+   ```
+
+The ingest process generates embeddings for 5,450 unique items and takes several minutes. The collection count should reach ~5,450 when complete.
+
+**Alternative**: Run a single command without an interactive session:
+```bash
+railway ssh --project=<project-id> --environment=<env-id> --service=<service-id> -- python -m backend.ingest
+```
+
+For more details on Railway SSH, see the [Railway CLI SSH documentation](https://docs.railway.com/guides/cli#ssh).
+
 ## Technology Stack
 
 **Backend:**
