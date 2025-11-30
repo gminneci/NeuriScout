@@ -92,7 +92,9 @@ export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDee
                     <div className="flex items-center gap-3 text-sm text-gray-700 flex-wrap">
                         {paper.neurips_virtualsite_url && (
                             <a
-                                href={`https://neurips.cc${paper.neurips_virtualsite_url}`}
+                                href={paper.neurips_virtualsite_url.startsWith('http') 
+                                    ? paper.neurips_virtualsite_url 
+                                    : `https://neurips.cc${paper.neurips_virtualsite_url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 font-medium hover:text-blue-600 transition-colors"
