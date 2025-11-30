@@ -8,6 +8,7 @@ export interface Paper {
     affiliation: string;
     session: string;
     paper_url: string;
+    neurips_virtualsite_url: string;
     openreview_url: string;
     distance: number;
 }

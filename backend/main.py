@@ -218,6 +218,66 @@ async def trigger_reingest():
         import traceback
         raise HTTPException(status_code=500, detail=f"Failed to run ingest: {str(e)}\n{traceback.format_exc()}")
 
+@app.post("/admin/reingest_async")
+def trigger_reingest_async():
+    """
+    Launch ingest in the background and return immediately.
+    Progress is written to /app/ingest.log (or local BASE_DIR/ingest.log).
+    """
+    import subprocess
+    import sys
+    import os
+
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    log_path = os.path.join(base_dir, "ingest.log")
+
+    try:
+        # Start background process piping stdout/stderr to log file
+        with open(log_path, "w") as f:
+            proc = subprocess.Popen(
+                [sys.executable, "-u", "-m", "backend.ingest"],
+                cwd=base_dir,
+                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                stdout=f,
+                stderr=subprocess.STDOUT,
+            )
+        return {"started": True, "pid": proc.pid, "log": log_path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/admin/ingest-status")
+def ingest_status(lines: int = 200):
+    """
+    Return the last N lines of the ingest log and whether the collection exists.
+    """
+    import os
+    from pathlib import Path
+    import chromadb
+    base_dir = Path(__file__).parent.parent
+    log_path = base_dir / "ingest.log"
+
+    # Read tail of log if exists
+    log_tail = ""
+    if log_path.exists():
+        try:
+            with open(log_path, "r") as f:
+                data = f.readlines()
+                log_tail = "".join(data[-lines:])
+        except Exception as e:
+            log_tail = f"<error reading log: {e}>"
+
+    # Check collection
+    chroma_path = os.getenv("CHROMA_DB_PATH", str(base_dir / "chroma_db"))
+    status = {"log_path": str(log_path), "log_tail": log_tail, "collection": {}}
+    try:
+        client = chromadb.PersistentClient(path=chroma_path)
+        collection = client.get_collection('neurips_papers')
+        status["collection"] = {"exists": True, "count": collection.count()}
+    except Exception as e:
+        status["collection"] = {"exists": False, "error": str(e)}
+
+    return status
+
 @app.get("/admin/status")
 def get_status():
     """Check the status of ChromaDB and data files."""

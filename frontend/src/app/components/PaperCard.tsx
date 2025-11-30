@@ -90,15 +90,26 @@ export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDee
 
                 <div className="border-t pt-4 mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3 text-sm text-gray-700 flex-wrap">
-                        {(paper.openreview_url || paper.paper_url) && (
+                        {paper.neurips_virtualsite_url && (
                             <a
-                                href={paper.openreview_url || paper.paper_url}
+                                href={`https://neurips.cc${paper.neurips_virtualsite_url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 font-medium hover:text-blue-600 transition-colors"
                             >
                                 <ExternalLink size={16} />
-                                View
+                                View on NeurIPS
+                            </a>
+                        )}
+                        {paper.openreview_url && (
+                            <a
+                                href={paper.openreview_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 font-medium hover:text-blue-600 transition-colors"
+                            >
+                                <ExternalLink size={16} />
+                                Paper
                             </a>
                         )}
                     </div>
