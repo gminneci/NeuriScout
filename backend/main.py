@@ -181,6 +181,35 @@ def get_openai_models(request: OpenAIModelsRequest):
     except Exception as e:
         return {'error': str(e), 'models': []}
 
+@app.post("/admin/reingest")
+async def trigger_reingest():
+    """
+    Trigger a re-ingestion of papers into ChromaDB.
+    WARNING: This will delete existing data and re-ingest from CSV files.
+    """
+    import subprocess
+    import sys
+    
+    try:
+        # Run ingest as a subprocess
+        result = subprocess.run(
+            [sys.executable, "-m", "backend.ingest"],
+            capture_output=True,
+            text=True,
+            timeout=600  # 10 minute timeout
+        )
+        
+        return {
+            "success": result.returncode == 0,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode
+        }
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Ingest process timed out after 10 minutes")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to run ingest: {str(e)}")
+
 def start_server():
     """Entry point for the neuriscout-backend command."""
     host = os.getenv("HOST", "0.0.0.0")
