@@ -189,26 +189,34 @@ async def trigger_reingest():
     """
     import subprocess
     import sys
+    import os
     
     try:
-        # Run ingest as a subprocess
+        # Get the base directory
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        # Run ingest as a subprocess with unbuffered output
         result = subprocess.run(
-            [sys.executable, "-m", "backend.ingest"],
+            [sys.executable, "-u", "-m", "backend.ingest"],
             capture_output=True,
             text=True,
-            timeout=600  # 10 minute timeout
+            timeout=600,  # 10 minute timeout
+            cwd=base_dir,
+            env={**os.environ, "PYTHONUNBUFFERED": "1"}
         )
         
         return {
             "success": result.returncode == 0,
             "stdout": result.stdout,
             "stderr": result.stderr,
-            "returncode": result.returncode
+            "returncode": result.returncode,
+            "message": "Ingest completed" if result.returncode == 0 else "Ingest failed"
         }
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=500, detail="Ingest process timed out after 10 minutes")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to run ingest: {str(e)}")
+        import traceback
+        raise HTTPException(status_code=500, detail=f"Failed to run ingest: {str(e)}\n{traceback.format_exc()}")
 
 def start_server():
     """Entry point for the neuriscout-backend command."""
