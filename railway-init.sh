@@ -14,9 +14,24 @@ ls -la /app/ || echo "Cannot list /app"
 # Ensure chroma_db directory exists
 mkdir -p "$CHROMA_DB_PATH"
 
-echo "Checking for ChromaDB at $CHROMA_DB_PATH/chroma.sqlite3..."
-if [ ! -f "$CHROMA_DB_PATH/chroma.sqlite3" ]; then
-    echo "ChromaDB not found, running ingest..."
+echo "Checking for ChromaDB collection..."
+# Check if collection exists by trying to query it
+if python -c "
+import chromadb
+import sys
+try:
+    client = chromadb.PersistentClient(path='$CHROMA_DB_PATH')
+    collection = client.get_collection('neurips_papers')
+    count = collection.count()
+    print(f'Collection found with {count} items')
+    sys.exit(0 if count > 0 else 1)
+except:
+    print('Collection not found or empty')
+    sys.exit(1)
+" 2>/dev/null; then
+    echo "✓ ChromaDB collection exists and has data, skipping ingest"
+else
+    echo "ChromaDB collection missing or empty, running ingest..."
     python -m backend.ingest
     
     # Verify ingest succeeded
@@ -26,8 +41,6 @@ if [ ! -f "$CHROMA_DB_PATH/chroma.sqlite3" ]; then
         echo "✗ ERROR: Ingest ran but chroma.sqlite3 not found at $CHROMA_DB_PATH"
         exit 1
     fi
-else
-    echo "ChromaDB already exists at $CHROMA_DB_PATH, skipping ingest"
 fi
 
 echo "Contents of $CHROMA_DB_PATH:"
