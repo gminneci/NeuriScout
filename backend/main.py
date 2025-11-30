@@ -218,6 +218,50 @@ async def trigger_reingest():
         import traceback
         raise HTTPException(status_code=500, detail=f"Failed to run ingest: {str(e)}\n{traceback.format_exc()}")
 
+@app.get("/admin/status")
+def get_status():
+    """Check the status of ChromaDB and data files."""
+    import os
+    from pathlib import Path
+    
+    base_dir = Path(__file__).parent.parent
+    status = {
+        "base_dir": str(base_dir),
+        "chroma_path": os.getenv("CHROMA_DB_PATH", str(base_dir / "chroma_db")),
+        "data_files": {},
+        "collection_status": None
+    }
+    
+    # Check CSV files
+    csv_files = [
+        "data/papercopilot_neurips2025_merged_openreview.csv",
+        "data/neurips_2025_enriched_events.csv"
+    ]
+    
+    for csv_file in csv_files:
+        csv_path = base_dir / csv_file
+        status["data_files"][csv_file] = {
+            "exists": csv_path.exists(),
+            "size_mb": round(csv_path.stat().st_size / 1024 / 1024, 2) if csv_path.exists() else None
+        }
+    
+    # Check collection
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=status["chroma_path"])
+        collection = client.get_collection('neurips_papers')
+        status["collection_status"] = {
+            "exists": True,
+            "count": collection.count()
+        }
+    except Exception as e:
+        status["collection_status"] = {
+            "exists": False,
+            "error": str(e)
+        }
+    
+    return status
+
 def start_server():
     """Entry point for the neuriscout-backend command."""
     host = os.getenv("HOST", "0.0.0.0")
