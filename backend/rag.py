@@ -99,6 +99,7 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                     "affiliation": metadata['affiliation'],
                     "session": metadata['session'],
                     "paper_url": metadata['paper_url'],
+                    "neurips_virtualsite_url": metadata.get('neurips_virtualsite_url', ''),
                     "openreview_url": metadata['openreview_url'],
                     "distance": 0.0
                 })
@@ -184,8 +185,9 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                 "affiliation": metadata['affiliation'],
                 "session": metadata['session'],
                 "paper_url": metadata['paper_url'],
+                "neurips_virtualsite_url": metadata.get('neurips_virtualsite_url', ''),
                 "openreview_url": metadata['openreview_url'],
-                "distance": distance
+                "distance": results['distances'][0][i]
             })
             
     return formatted_results[:n_results]
