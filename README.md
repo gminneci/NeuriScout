@@ -131,6 +131,10 @@ The frontend will run on http://localhost:3000
    - Click the settings icon to configure API keys and models
    - Ask questions about the Deep Dive papers and tweak the system prompt anytime
    - Subsequent questions are instant thanks to file caching
+5. **Links to Sources**:
+   - "View on NeurIPS" opens the official NeurIPS virtual site page for the paper/event (for logged-in bookmarks)
+   - "Paper" opens the OpenReview page for papers (reviews/discussion)
+   - NeurIPS links are standardized and work for all content types (posters, oral, tutorials, workshops, invited talks)
 
 ## Data Processing
 
@@ -311,6 +315,26 @@ railway ssh --project=<project-id> --environment=<env-id> --service=<service-id>
 ```
 
 For more details on Railway SSH, see the [Railway CLI SSH documentation](https://docs.railway.com/guides/cli#ssh).
+
+#### Post-deploy: Populate NeurIPS Links
+
+After merging to `main`, Railway will auto-deploy. To enable the new "View on NeurIPS" links, re-run the ingest so the ChromaDB contains the `neurips_virtualsite_url` metadata:
+
+1. Connect via Railway SSH (copy command from Dashboard):
+```bash
+railway ssh --project=<project-id> --environment=<env-id> --service=<service-id>
+```
+2. Run ingest in the container:
+```bash
+python -m backend.ingest > /app/ingest.log 2>&1 &
+```
+3. Monitor progress:
+```bash
+curl https://your-app.railway.app/admin/status | grep count
+# or
+tail -f /app/ingest.log
+```
+Target count is ~5450 items. Once complete, the frontend shows both "View on NeurIPS" and "Paper" buttons.
 
 ## Technology Stack
 
