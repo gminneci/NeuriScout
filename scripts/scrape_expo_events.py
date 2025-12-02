@@ -5,6 +5,45 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
+import re
+from datetime import datetime
+
+def parse_neurips_datetime(date_str):
+    """Parse NeurIPS date format like 'Tue 2 Dec 8:30 a.m. PST' to ISO format"""
+    if not date_str:
+        return None, None, None
+    
+    try:
+        # Extract the date part: "Tue 2 Dec" and time part "8:30 a.m."
+        # Format: "Tue 2 Dec 8:30 a.m. PST — 9:30 a.m. PST"
+        match = re.search(r'(\w+\s+\d+\s+\w+)\s+(\d+):(\d+)\s+(a\.m\.|p\.m\.)', date_str)
+        if not match:
+            return None, None, None
+        
+        date_part = match.group(1)  # "Tue 2 Dec"
+        hour = int(match.group(2))
+        minute = match.group(3)
+        ampm = match.group(4)
+        
+        # Convert to 24-hour format
+        if 'p.m.' in ampm and hour != 12:
+            hour += 12
+        elif 'a.m.' in ampm and hour == 12:
+            hour = 0
+        
+        # Parse date - add year 2025
+        date_with_year = f"{date_part} 2025"
+        dt = datetime.strptime(date_with_year, "%a %d %b %Y")
+        
+        # Create full datetime with timezone (PST is -08:00)
+        iso_datetime = f"{dt.year}-{dt.month:02d}-{dt.day:02d}T{hour:02d}:{minute}:00-08:00"
+        day = f"{dt.year}-{dt.month:02d}-{dt.day:02d}"
+        ampm_val = "AM" if hour < 12 else "PM"
+        
+        return iso_datetime, day, ampm_val
+    except Exception as e:
+        print(f"Error parsing date '{date_str}': {e}")
+        return None, None, None
 
 def scrape_event_details(event_id, base_url="https://neurips.cc"):
     """Scrape details for a single event"""
@@ -26,31 +65,47 @@ def scrape_event_details(event_id, base_url="https://neurips.cc"):
         abstract_div = soup.find('div', class_=lambda x: x and 'abstract' in str(x).lower())
         if not abstract_div:
             abstract_div = soup.find('div', class_=lambda x: x and 'description' in str(x).lower())
-        if abstract_div:
+        if not abstract_div:
+            # Try to find any text content that looks like a description
+            content_div = soup.find('div', class_=lambda x: x and 'content' in str(x).lower())
+            if content_div:
+                abstract = content_div.get_text(strip=True)
+        else:
             abstract = abstract_div.get_text(strip=True)
         
-        # Extract session/location info
-        session_info = soup.find('div', class_=lambda x: x and 'session' in str(x).lower())
+        # Extract time/date info - look for datetime elements
+        start_time_raw = ""
         location = ""
-        if session_info:
-            location = session_info.get_text(strip=True)
         
-        # Extract time info
-        time_div = soup.find('div', class_=lambda x: x and ('time' in str(x).lower() or 'date' in str(x).lower()))
-        start_time = ""
-        if time_div:
-            start_time = time_div.get_text(strip=True)
+        # Look for date/time text (e.g., "Tue 2 Dec 8:30 a.m. PST")
+        date_matches = soup.find_all(string=re.compile(r'\d+\s+Dec.*?[ap]\.m\..*?PST', re.I))
+        if date_matches:
+            # Get the first match and extract just the relevant part
+            full_text = date_matches[0].strip()
+            # Extract up to the em dash or take whole thing
+            start_time_raw = full_text.split('—')[0].strip() if '—' in full_text else full_text
+        
+        # Extract location
+        location_elem = soup.find(['div', 'span'], class_=lambda x: x and 'location' in str(x).lower())
+        if location_elem:
+            location = location_elem.get_text(strip=True)
         
         # Extract authors/presenters
-        authors_div = soup.find('div', class_=lambda x: x and ('author' in str(x).lower() or 'presenter' in str(x).lower()))
         authors = ""
+        authors_div = soup.find('div', class_=lambda x: x and ('author' in str(x).lower() or 'presenter' in str(x).lower() or 'speaker' in str(x).lower()))
         if authors_div:
             authors = authors_div.get_text(strip=True)
+        
+        # Parse the datetime
+        iso_time, day, ampm = parse_neurips_datetime(start_time_raw)
         
         return {
             'abstract': abstract,
             'location': location,
-            'start_time': start_time,
+            'start_time': iso_time,
+            'start_time_raw': start_time_raw,
+            'day': day,
+            'ampm': ampm,
             'authors': authors,
             'virtualsite_url': event_url
         }
@@ -115,6 +170,11 @@ def scrape_neurips_expo_events():
                 'neurips_starttime': details.get('start_time', ''),
                 'authors': details.get('authors', ''),
             })
+            
+            # Add day and ampm for filtering
+            if details.get('day'):
+                event_data['day'] = details['day']
+                event_data['ampm'] = details.get('ampm', '')
         else:
             event_data.update({
                 'neurips_abstract': '',
