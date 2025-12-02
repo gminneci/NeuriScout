@@ -8,7 +8,9 @@ import PaperCard from '@/app/components/PaperCard';
 import ChatPanel from '@/app/components/ChatPanel';
 import UserMenu from '@/app/components/UserMenu';
 import Autocomplete from '@/app/components/Autocomplete';
-import { Search, Filter, Sparkles } from 'lucide-react';
+import { Search, Filter, Sparkles, Star } from 'lucide-react';
+import { useBookmarks } from '@/contexts/BookmarksContext';
+import Link from 'next/link';
 
 const DEEP_DIVE_STORAGE_KEY = 'neuriscout.deepDivePapers';
 const MAX_DEEP_DIVE_PAPERS = 25;
@@ -16,6 +18,7 @@ const MAX_DEEP_DIVE_PAPERS = 25;
 export default function Home() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const { bookmarks } = useBookmarks();
 
     const [query, setQuery] = useState('');
     const [papers, setPapers] = useState<Paper[]>([]);
@@ -154,6 +157,21 @@ export default function Home() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3">
+                            <Link 
+                                href="/bookmarks"
+                                className="flex items-center gap-2 px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors"
+                                title="View bookmarked papers"
+                            >
+                                <Star size={18} fill="currentColor" />
+                                <span className="hidden sm:inline font-medium">
+                                    Bookmarks {bookmarks.length > 0 && `(${bookmarks.length})`}
+                                </span>
+                                {bookmarks.length > 0 && (
+                                    <span className="sm:hidden bg-yellow-800 text-yellow-100 px-2 py-0.5 rounded-full text-xs font-bold">
+                                        {bookmarks.length}
+                                    </span>
+                                )}
+                            </Link>
                             <UserMenu />
                         </div>
                     </div>

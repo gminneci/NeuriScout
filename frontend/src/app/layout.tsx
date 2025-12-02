@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./components/AuthProvider";
+import { BookmarksProvider } from "@/contexts/BookmarksContext";
 
 export const metadata: Metadata = {
   title: "NeuriScout: navigate Neurips 2025",
@@ -19,7 +20,9 @@ export default function RootLayout({
         style={{ fontFamily: "'Bond', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
       >
         <AuthProvider>
-          {children}
+          <BookmarksProvider>
+            {children}
+          </BookmarksProvider>
         </AuthProvider>
       </body>
     </html>

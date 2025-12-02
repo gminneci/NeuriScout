@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Paper } from '@/lib/api';
-import { ExternalLink, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ExternalLink, ChevronDown, ChevronUp, Sparkles, Star } from 'lucide-react';
+import { useBookmarks } from '@/contexts/BookmarksContext';
 
 interface PaperCardProps {
     paper: Paper;
@@ -11,6 +12,16 @@ interface PaperCardProps {
 
 export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDeepDive }: PaperCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+    const bookmarked = isBookmarked(paper.id);
+
+    const handleToggleBookmark = () => {
+        if (bookmarked) {
+            removeBookmark(paper.id);
+        } else {
+            addBookmark(paper);
+        }
+    };
 
     return (
         <div
@@ -115,27 +126,39 @@ export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDee
                             </a>
                         )}
                     </div>
-                    <button
-                        onClick={() => {
-                            if (!inDeepDive && deepDiveFull) {
-                                return;
-                            }
-                            onToggleDeepDive();
-                        }}
-                        disabled={!inDeepDive && !!deepDiveFull}
-                        className={`flex items-center justify-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm ${
-                            inDeepDive
-                                ? 'bg-[#22367a] text-white hover:bg-[#31488e]'
-                                : deepDiveFull
-                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#2596be] text-white hover:bg-[#3aa8d1]'
-                        }`}
-                        title={(!inDeepDive && deepDiveFull) ? 'Deep Dive is limited to 10 papers' : undefined}
-                    >
-                        <Sparkles size={16} />
-                        {inDeepDive ? 'Remove from Deep Dive' : 'Add to Deep Dive'}
-                    </button>
-                </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleToggleBookmark}
+                            className={`flex items-center justify-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors shadow-sm ${
+                                bookmarked
+                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                            title={bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+                        >
+                            <Star size={16} fill={bookmarked ? 'currentColor' : 'none'} />
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (!inDeepDive && deepDiveFull) {
+                                    return;
+                                }
+                                onToggleDeepDive();
+                            }}
+                            disabled={!inDeepDive && !!deepDiveFull}
+                            className={`flex items-center justify-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm ${
+                                inDeepDive
+                                    ? 'bg-[#22367a] text-white hover:bg-[#31488e]'
+                                    : deepDiveFull
+                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        : 'bg-[#2596be] text-white hover:bg-[#3aa8d1]'
+                            }`}
+                            title={(!inDeepDive && deepDiveFull) ? 'Deep Dive is limited to 10 papers' : undefined}
+                        >
+                            <Sparkles size={16} />
+                            {inDeepDive ? 'Remove from Deep Dive' : 'Add to Deep Dive'}
+                        </button>
+                    </div>
             </div>
         </div>
     );

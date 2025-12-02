@@ -10,6 +10,9 @@ export interface Paper {
     paper_url: string;
     neurips_virtualsite_url: string;
     openreview_url: string;
+    start_time?: string;
+    day?: string;
+    ampm?: string;
     distance: number;
 }
 
