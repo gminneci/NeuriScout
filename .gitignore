@@ -25,6 +25,10 @@ neurips_downloads/
 *.csv
 !data/papercopilot_neurips2025_merged_openreview.csv
 !data/neurips_2025_enriched_events.csv
+!data/neurips_2025_expo_events.csv
+
+# Temporary HTML files from scraping
+data/*.html
 
 # Logs
 *.log
