@@ -159,6 +159,7 @@ export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDee
                             {inDeepDive ? 'Remove from Deep Dive' : 'Add to Deep Dive'}
                         </button>
                     </div>
+                </div>
             </div>
         </div>
     );
