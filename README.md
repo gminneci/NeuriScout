@@ -4,11 +4,15 @@ A full-stack application for searching and analyzing NeurIPS 2025 research paper
 
 ## Features
 
-- **Semantic Search**: Search through NeurIPS 2025 papers, workshops, tutorials, and invited talks using natural language queries
+- **Semantic Search**: Search through NeurIPS 2025 papers, workshops, tutorials, invited talks, and expo events using natural language queries
 - **Advanced Filtering**: Filter by author, affiliation, session/event type, and conference day/time (AM/PM)
   - **Full Conference Coverage**: Search across the entire NeurIPS 2025 San Diego program (Dec 2-7)
-  - **Multiple Content Types**: Papers (5,450 items), workshops, tutorials, and invited talks
-  - **Smart Session Filtering**: Find specific event types like "Invited Talk" or "Workshop"
+  - **Multiple Content Types**: Papers (5,450 items), workshops, tutorials, invited talks, and expo events (panels, demonstrations, workshops)
+  - **Smart Session Filtering**: Find specific event types like "Invited Talk", "Workshop", or "Expo Talk Panel"
+- **Bookmarks**: Save papers and events to bookmarks for easy access later
+  - **Persistent Storage**: Bookmarks are saved in browser localStorage and persist across sessions
+  - **Organized Display**: Bookmarked items are grouped by day and time (AM/PM)
+  - **Easy Management**: Add/remove bookmarks with a single click, clear all bookmarks at once
 - **Deep Dive Chat**: Add up to 25 papers to a Deep Dive queue and chat about them with OpenAI or Google Gemini
    - **One-click add**: Use the button on each paper card or “Add all to Deep Dive” for the current results
    - **Smart Pre-upload**: Papers are uploaded when you open the chat panel, making your first query instant
@@ -68,8 +72,9 @@ neuriscout-ingest
 This will process the data from:
 - `data/papercopilot_neurips2025_merged_openreview.csv` (papers)
 - `data/neurips_2025_enriched_events.csv` (workshops, tutorials, invited talks)
+- `data/neurips_2025_expo_events.csv` (expo events: panels, demonstrations, workshops)
 
-Creates the vector database in `chroma_db/` with embeddings for 5,450 unique items (papers + events). This takes a few minutes and creates ~90MB of data.
+Creates the vector database in `chroma_db/` with embeddings for ~5,500 unique items (papers + events). This takes a few minutes and creates ~90MB of data.
 
 **Note:** The ChromaDB is required for the application to work. Keep it in the `chroma_db/` directory (it's excluded from git).
 
@@ -118,20 +123,26 @@ The frontend will run on http://localhost:3000
      - "Invited Talk" - Find all 6 invited talks (Rich Sutton, Zeynep Tufekci, Yejin Choi, Melanie Mitchell, Kyunghyun Cho, Andrew Saxe)
      - "Workshop" - Browse workshop sessions
      - "Tutorial" - Find tutorial sessions
+     - "Expo Talk Panel", "Expo Workshop", "Expo Demonstration" - Browse expo events
      - Or filter by poster sessions (e.g., "San Diego Poster Session 1")
    - Use day filters (Tue-Sun) and time filters (AM/PM) to browse by conference schedule
    - Combine multiple filters with OR logic (e.g., "MIT" OR "Stanford")
-3. **Build Your Deep Dive**:
+3. **Bookmark Items**:
+   - Click the star icon on any paper or event card to bookmark it
+   - View all bookmarks via the "Bookmarks" button in the header
+   - Bookmarks are organized by day and time (AM/PM)
+   - Clear individual bookmarks or all at once
+4. **Build Your Deep Dive**:
    - Click "Add to Deep Dive" on individual paper cards (or "Add all to Deep Dive" for the current results)
    - Track how many slots remain (up to 25 papers can be active at once)
    - Remove papers from the Deep Dive button if you want to swap them out
-4. **Deep Dive Chat**:
+5. **Deep Dive Chat**:
    - Click "Deep Dive (X/25)" to open the chat panel
    - Papers are automatically uploaded in the background (Gemini only)
    - Click the settings icon to configure API keys and models
    - Ask questions about the Deep Dive papers and tweak the system prompt anytime
    - Subsequent questions are instant thanks to file caching
-5. **Links to Sources**:
+6. **Links to Sources**:
    - "View on NeurIPS" opens the official NeurIPS virtual site page for the paper/event (for logged-in bookmarks)
    - "Paper" opens the OpenReview page for papers (reviews/discussion)
    - NeurIPS links are standardized and work for all content types (posters, oral, tutorials, workshops, invited talks)
@@ -183,7 +194,7 @@ The `scripts/` directory contains utilities for:
    - Options for uploading:
      - **Via Render Shell**: Access your service's Shell tab and run `neuriscout-ingest`
      - **Manual upload**: Use `scp` or Render's file upload to copy your local `chroma_db/` directory to the persistent disk mount path
-   - The database contains 5,450 unique items (papers, workshops, tutorials, invited talks) with embeddings and takes a few minutes to generate
+   - The database contains ~5,500 unique items (papers, workshops, tutorials, invited talks, expo events) with embeddings and takes a few minutes to generate
 
 6. **Copy your service URL** (e.g., `https://neuriscout-backend.onrender.com`)
 
@@ -218,7 +229,7 @@ The `scripts/` directory contains utilities for:
   - The vector database is NOT in the repository (excluded via `.gitignore`)
   - Generate it locally with `neuriscout-ingest` before deploying
   - Upload to the persistent disk after deployment (via Render Shell or manual transfer)
-  - The database is ~90MB and contains embeddings for 5,450 items (papers + events)
+  - The database is ~90MB and contains embeddings for ~5,500 items (papers + events + expo)
 - **Custom Domain**: Both Vercel and Render support custom domains for free.
 
 ### Alternative: Deploy to Railway
@@ -255,7 +266,7 @@ The backend includes two admin endpoints for managing deployments:
 **POST /admin/reingest** - Manual data ingestion:
 - Runs the ingest process to populate ChromaDB
 - Returns stdout/stderr from the ingest process
-- Takes several minutes to complete (5,450 items)
+- Takes several minutes to complete (~5,500 items)
 - Example: `curl -X POST https://your-app.railway.app/admin/reingest`
 
 **Note**: The `/admin/reingest` endpoint runs synchronously and blocks the API during execution. For large datasets, use SSH to run the ingest in the background.
@@ -307,7 +318,7 @@ If the automatic ingestion fails or you need to re-populate the database:
    tail -f /app/ingest.log
    ```
 
-The ingest process generates embeddings for 5,450 unique items and takes several minutes. The collection count should reach ~5,450 when complete.
+The ingest process generates embeddings for ~5,500 unique items and takes several minutes. The collection count should reach ~5,500 when complete.
 
 **Alternative**: Run a single command without an interactive session:
 ```bash
@@ -334,7 +345,7 @@ curl https://your-app.railway.app/admin/status | grep count
 # or
 tail -f /app/ingest.log
 ```
-Target count is ~5450 items. Once complete, the frontend shows both "View on NeurIPS" and "Paper" buttons.
+Target count is ~5500 items. Once complete, the frontend shows both "View on NeurIPS" and "Paper" buttons.
 
 ## Technology Stack
 

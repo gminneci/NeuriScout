@@ -433,7 +433,7 @@ def get_filters():
         
     import pandas as pd
     try:
-        # Read both CSV files to get unique values
+        # Read all CSV files to get unique values
         papers_path = "../data/papercopilot_neurips2025_merged_openreview.csv"
         if not os.path.exists(papers_path):
             papers_path = "data/papercopilot_neurips2025_merged_openreview.csv"
@@ -442,12 +442,22 @@ def get_filters():
         if not os.path.exists(events_path):
             events_path = "data/neurips_2025_enriched_events.csv"
         
-        # Read both CSVs
+        expo_path = "../data/neurips_2025_expo_events.csv"
+        if not os.path.exists(expo_path):
+            expo_path = "data/neurips_2025_expo_events.csv"
+        
+        # Read all CSVs
         df_papers = pd.read_csv(papers_path)
         df_events = pd.read_csv(events_path) if os.path.exists(events_path) else pd.DataFrame()
+        df_expo = pd.read_csv(expo_path) if os.path.exists(expo_path) else pd.DataFrame()
         
         # Combine for filters
-        df = pd.concat([df_papers, df_events], ignore_index=True) if not df_events.empty else df_papers
+        dfs_to_combine = [df_papers]
+        if not df_events.empty:
+            dfs_to_combine.append(df_events)
+        if not df_expo.empty:
+            dfs_to_combine.append(df_expo)
+        df = pd.concat(dfs_to_combine, ignore_index=True)
         
         # Helper to split and clean
         def get_unique(col):
