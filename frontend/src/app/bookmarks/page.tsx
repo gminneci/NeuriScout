@@ -4,11 +4,36 @@ import React from 'react';
 import { useBookmarks } from '@/contexts/BookmarksContext';
 import { Paper } from '@/lib/api';
 import PaperCard from '@/app/components/PaperCard';
-import { ArrowLeft, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, Star, Trash2, Download } from 'lucide-react';
 import Link from 'next/link';
 
 export default function BookmarksPage() {
     const { bookmarks, clearBookmarks } = useBookmarks();
+
+    const exportToCSV = () => {
+        // CSV header
+        const csvRows = ['Day,Time,Title,Session'];
+        
+        // Add each bookmark as a row
+        bookmarks.forEach(paper => {
+            const day = paper.day || '';
+            const ampm = paper.ampm || '';
+            const title = (paper.title || '').replace(/"/g, '""'); // Escape quotes
+            const session = (paper.session || '').replace(/"/g, '""'); // Escape quotes
+            
+            csvRows.push(`"${day}","${ampm}","${title}","${session}"`);
+        });
+        
+        // Create blob and download
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `neurips-bookmarks-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
 
     // Group bookmarks by day, then by AM/PM
     const groupedBookmarks = React.useMemo(() => {
@@ -95,17 +120,26 @@ export default function BookmarksPage() {
                     </div>
 
                     {bookmarks.length > 0 && (
-                        <button
-                            onClick={() => {
-                                if (confirm(`Are you sure you want to clear all ${bookmarks.length} bookmarks?`)) {
-                                    clearBookmarks();
-                                }
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                        >
-                            <Trash2 size={16} />
-                            Clear All
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={exportToCSV}
+                                className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                            >
+                                <Download size={16} />
+                                Export CSV
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (confirm(`Are you sure you want to clear all ${bookmarks.length} bookmarks?`)) {
+                                        clearBookmarks();
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                            >
+                                <Trash2 size={16} />
+                                Clear All
+                            </button>
+                        </div>
                     )}
                 </div>
 
