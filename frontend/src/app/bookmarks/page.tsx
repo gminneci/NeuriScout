@@ -50,10 +50,24 @@ export default function BookmarksPage() {
             groups[day][ampm].push(paper);
         });
 
-        // Sort papers within each group by start_time
+        // Sort papers within each group by start_time, then by poster_position
         Object.keys(groups).forEach(day => {
-            groups[day].AM.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
-            groups[day].PM.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+            const sortFn = (a: Paper, b: Paper) => {
+                // First sort by start_time
+                const timeCompare = (a.start_time || '').localeCompare(b.start_time || '');
+                if (timeCompare !== 0) return timeCompare;
+                
+                // Then sort by poster_position (extract number from "#123" format)
+                const getPosterNum = (pos?: string) => {
+                    if (!pos) return Infinity;
+                    const match = pos.match(/\d+/);
+                    return match ? parseInt(match[0], 10) : Infinity;
+                };
+                return getPosterNum(a.poster_position) - getPosterNum(b.poster_position);
+            };
+            
+            groups[day].AM.sort(sortFn);
+            groups[day].PM.sort(sortFn);
         });
 
         // Sort days chronologically

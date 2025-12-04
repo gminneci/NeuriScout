@@ -46,11 +46,6 @@ export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDee
                         </p>
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
-                        {paper.poster_position && paper.poster_position.trim() && (
-                            <div className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border-2 border-blue-200">
-                                Poster {paper.poster_position}
-                            </div>
-                        )}
                         <div className="flex flex-wrap justify-end gap-1 max-w-[280px]">
                             {paper.session ? paper.session.split(';').map((s, i) => (
                                 <span key={i} className="text-xs font-medium px-2 py-1 bg-blue-50 text-blue-700 rounded-full whitespace-nowrap">
