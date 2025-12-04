@@ -110,6 +110,7 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                     "day": metadata.get('day', ''),
                     "ampm": metadata.get('ampm', ''),
                     "poster_position": metadata.get('poster_position', ''),
+                    "rating": metadata.get('rating', 0.0),
                     "distance": 0.0
                 })
         
@@ -200,6 +201,7 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                 "day": metadata.get('day', ''),
                 "ampm": metadata.get('ampm', ''),
                 "poster_position": metadata.get('poster_position', ''),
+                "rating": metadata.get('rating', 0.0),
                 "distance": results['distances'][0][i]
             })
             

@@ -14,6 +14,7 @@ export interface Paper {
     day?: string;
     ampm?: string;
     poster_position?: string;
+    rating?: number;
     distance: number;
 }
 

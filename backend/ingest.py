@@ -69,6 +69,7 @@ def main():
         'neurips_starttime': 'first',
         'neurips_event_type': 'first',
         'neurips_poster_position': 'first',
+        'avg_rating': 'first',
         'affiliation': lambda x: '; '.join(sorted(set([i.strip() for s in x.dropna() for i in str(s).split(';') if i.strip()]))),
         'neurips_session': lambda x: '; '.join(sorted(set([i.strip() for s in x.dropna() for i in str(s).split(';') if i.strip()])))
     }
@@ -141,6 +142,16 @@ def main():
             if not pd.isna(pos_val) and str(pos_val).strip() not in ['', 'nan', 'None']:
                 poster_position = str(pos_val)
         
+        # Get rating if available
+        rating = 0.0
+        if 'avg_rating' in row:
+            rating_val = row['avg_rating']
+            if not pd.isna(rating_val):
+                try:
+                    rating = float(rating_val)
+                except (ValueError, TypeError):
+                    rating = 0.0
+        
         meta = {
             "title": str(row['title']),
             "authors": str(row['authors']),
@@ -154,7 +165,8 @@ def main():
             "start_time": str(row['neurips_starttime']) if not pd.isna(row['neurips_starttime']) else "",
             "day": day,
             "ampm": ampm,
-            "poster_position": poster_position
+            "poster_position": poster_position,
+            "rating": rating
         }
         
         documents.append(text_to_embed)

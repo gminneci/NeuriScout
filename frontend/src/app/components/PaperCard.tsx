@@ -72,6 +72,12 @@ export default function PaperCard({ paper, inDeepDive, deepDiveFull, onToggleDee
                                 </span>
                             )}
                         </div>
+                        {paper.rating !== undefined && paper.rating > 0 && (
+                            <div className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+                                <span>⭐</span>
+                                <span>{paper.rating.toFixed(1)}</span>
+                            </div>
+                        )}
                         {paper.distance !== undefined && (
                             <span
                                 className={`text-xs font-bold px-2 py-1 rounded-full ${
