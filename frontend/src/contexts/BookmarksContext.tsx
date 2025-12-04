@@ -63,6 +63,12 @@ export function BookmarksProvider({ children }: { children: ReactNode }) {
 
     const clearBookmarks = () => {
         setBookmarks([]);
+        // Immediately clear localStorage to ensure it's saved
+        try {
+            localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify([]));
+        } catch (error) {
+            console.error('Failed to clear bookmarks from localStorage:', error);
+        }
     };
 
     return (

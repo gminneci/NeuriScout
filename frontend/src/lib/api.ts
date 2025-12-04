@@ -13,6 +13,7 @@ export interface Paper {
     start_time?: string;
     day?: string;
     ampm?: string;
+    poster_position?: string;
     distance: number;
 }
 

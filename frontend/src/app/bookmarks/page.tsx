@@ -12,16 +12,17 @@ export default function BookmarksPage() {
 
     const exportToCSV = () => {
         // CSV header
-        const csvRows = ['Day,Time,Title,Session'];
+        const csvRows = ['Day,Time,Poster,Title,Session'];
         
         // Add each bookmark as a row
         bookmarks.forEach(paper => {
             const day = paper.day || '';
             const ampm = paper.ampm || '';
+            const poster = paper.poster_position || '';
             const title = (paper.title || '').replace(/"/g, '""'); // Escape quotes
             const session = (paper.session || '').replace(/"/g, '""'); // Escape quotes
             
-            csvRows.push(`"${day}","${ampm}","${title}","${session}"`);
+            csvRows.push(`"${day}","${ampm}","${poster}","${title}","${session}"`);
         });
         
         // Create blob and download
@@ -180,11 +181,18 @@ export default function BookmarksPage() {
                                         <div className="space-y-4">
                                             {am.map(paper => (
                                                 <div key={paper.id} className="flex gap-3">
-                                                    {paper.start_time && (
-                                                        <div className="flex-shrink-0 w-20 text-sm font-medium text-gray-600 pt-4">
-                                                            {formatTime(paper.start_time)}
-                                                        </div>
-                                                    )}
+                                                    <div className="flex-shrink-0 flex flex-col gap-1 w-20 pt-4">
+                                                        {paper.start_time && (
+                                                            <div className="text-sm font-medium text-gray-600">
+                                                                {formatTime(paper.start_time)}
+                                                            </div>
+                                                        )}
+                                                        {paper.poster_position && (
+                                                            <div className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                                                                {paper.poster_position}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div className="flex-1">
                                                         <PaperCard 
                                                             paper={paper}
@@ -208,11 +216,18 @@ export default function BookmarksPage() {
                                         <div className="space-y-4">
                                             {pm.map(paper => (
                                                 <div key={paper.id} className="flex gap-3">
-                                                    {paper.start_time && (
-                                                        <div className="flex-shrink-0 w-20 text-sm font-medium text-gray-600 pt-4">
-                                                            {formatTime(paper.start_time)}
-                                                        </div>
-                                                    )}
+                                                    <div className="flex-shrink-0 flex flex-col gap-1 w-20 pt-4">
+                                                        {paper.start_time && (
+                                                            <div className="text-sm font-medium text-gray-600">
+                                                                {formatTime(paper.start_time)}
+                                                            </div>
+                                                        )}
+                                                        {paper.poster_position && (
+                                                            <div className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                                                                {paper.poster_position}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div className="flex-1">
                                                         <PaperCard 
                                                             paper={paper}

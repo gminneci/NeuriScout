@@ -198,6 +198,7 @@ def search_papers(query: str, n_results: int = 10, filters: dict = None, thresho
                 "start_time": metadata.get('start_time', ''),
                 "day": metadata.get('day', ''),
                 "ampm": metadata.get('ampm', ''),
+                "poster_position": metadata.get('poster_position', ''),
                 "distance": results['distances'][0][i]
             })
             

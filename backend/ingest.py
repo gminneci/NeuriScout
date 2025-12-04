@@ -68,6 +68,7 @@ def main():
         'openreview_urls': 'first',
         'neurips_starttime': 'first',
         'neurips_event_type': 'first',
+        'neurips_poster_position': 'first',
         'affiliation': lambda x: '; '.join(sorted(set([i.strip() for s in x.dropna() for i in str(s).split(';') if i.strip()]))),
         'neurips_session': lambda x: '; '.join(sorted(set([i.strip() for s in x.dropna() for i in str(s).split(';') if i.strip()])))
     }
@@ -133,6 +134,13 @@ def main():
         # Chroma metadata must be int, float, str, or bool. No lists.
         # We'll join lists into strings.
         
+        # Get poster position if available
+        poster_position = ""
+        if 'neurips_poster_position' in row:
+            pos_val = row['neurips_poster_position']
+            if not pd.isna(pos_val) and str(pos_val).strip() not in ['', 'nan', 'None']:
+                poster_position = str(pos_val)
+        
         meta = {
             "title": str(row['title']),
             "authors": str(row['authors']),
@@ -145,7 +153,8 @@ def main():
             "openreview_url": str(row['openreview_urls']) if not pd.isna(row['openreview_urls']) else "",
             "start_time": str(row['neurips_starttime']) if not pd.isna(row['neurips_starttime']) else "",
             "day": day,
-            "ampm": ampm
+            "ampm": ampm,
+            "poster_position": poster_position
         }
         
         documents.append(text_to_embed)
