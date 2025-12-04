@@ -11,7 +11,9 @@ A full-stack application for searching and analyzing NeurIPS 2025 research paper
   - **Smart Session Filtering**: Find specific event types like "Invited Talk", "Workshop", or "Expo Talk Panel"
 - **Bookmarks**: Save papers and events to bookmarks for easy access later
   - **Persistent Storage**: Bookmarks are saved in browser localStorage and persist across sessions
-  - **Organized Display**: Bookmarked items are grouped by day and time (AM/PM)
+  - **Smart Organization**: Bookmarked items are sorted by day, time (AM/PM), and poster number for easy conference navigation
+  - **Poster Positions**: View poster numbers for each paper to quickly locate them at the conference
+  - **CSV Export**: Export your bookmarks to CSV with day, time, poster, title, and session information
   - **Easy Management**: Add/remove bookmarks with a single click, clear all bookmarks at once
 - **Deep Dive Chat**: Add up to 25 papers to a Deep Dive queue and chat about them with OpenAI or Google Gemini
    - **One-click add**: Use the button on each paper card or “Add all to Deep Dive” for the current results
@@ -130,7 +132,9 @@ The frontend will run on http://localhost:3000
 3. **Bookmark Items**:
    - Click the star icon on any paper or event card to bookmark it
    - View all bookmarks via the "Bookmarks" button in the header
-   - Bookmarks are organized by day and time (AM/PM)
+   - Bookmarks are automatically sorted by day, time (AM/PM), and poster number
+   - Poster numbers are displayed next to the time to help navigate the conference
+   - Export all bookmarks to CSV for offline reference
    - Clear individual bookmarks or all at once
 4. **Build Your Deep Dive**:
    - Click "Add to Deep Dive" on individual paper cards (or "Add all to Deep Dive" for the current results)
