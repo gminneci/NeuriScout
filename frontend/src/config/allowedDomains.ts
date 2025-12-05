@@ -2,6 +2,7 @@
 // Add domains without the @ symbol
 export const ALLOWED_DOMAINS = [
   'fractile.ai',
+  'graphcore.ai',
   // add more domains as needed
 ];
 
